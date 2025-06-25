@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time 
 import yaml
 import json
 import argparse
@@ -153,6 +154,7 @@ def main():
     setup_seed(conf["seed"])
     num_epoch = conf['epochs'] if conf['epoch'] == -1 else conf["epoch"]
     for epoch in range(num_epoch):
+        start_train_epoch = time.time() # start time train epoch 
         epoch_anchor = epoch * batch_cnt
         model.train(True)
         pbar = tqdm(enumerate(dataset.train_loader),
@@ -180,12 +182,16 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
-            if (batch_anchor+1) % test_interval_bs == 0:
-                metrics = {}
-                metrics["val"] = test(model, dataset.val_loader, conf)
-                metrics["test"] = test(model, dataset.test_loader, conf)
-                best_metrics, best_perform, best_epoch, is_better = log_metrics(
-                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
+            # if (batch_anchor+1) % test_interval_bs == 0:
+            #     metrics = {}
+            #     metrics["val"] = test(model, dataset.val_loader, conf)
+            #     metrics["test"] = test(model, dataset.test_loader, conf)
+            #     best_metrics, best_perform, best_epoch, is_better = log_metrics(
+            #         conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
+
+        time_train_epoch = time.time() - start_train_epoch
+
+        print(f'time train epoch {epoch}: {time_train_epoch}')
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
