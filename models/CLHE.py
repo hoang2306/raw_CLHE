@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from collections import OrderedDict
+import os
 
 eps = 1e-9
 
@@ -254,6 +255,19 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
+    def save_embedding(self, log_path):
+        feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
+        feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
+        torch.save(self.feat_retrival_view, feat_retrival_view_path)
+        print(f'saved {feat_retrival_view_path}')
+
+        item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
+        # get embedding from encoder
+        item_embedding = self.decoder.item_embeddings
+        torch.save(item_embedding, item_embedding_path)
+        print(f'saved {item_embedding_path}')
+        
+
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
@@ -263,6 +277,7 @@ class CLHE(nn.Module):
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         feat_retrival_view = self.decoder(batch, all=True)
+        # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)

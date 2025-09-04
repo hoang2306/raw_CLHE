@@ -187,12 +187,12 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
-            # if (batch_anchor+1) % test_interval_bs == 0:
-            #     metrics = {}
-            #     metrics["val"] = test(model, dataset.val_loader, conf)
-            #     metrics["test"] = test(model, dataset.test_loader, conf)
-            #     best_metrics, best_perform, best_epoch, is_better = log_metrics(
-            #         conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
+            if (batch_anchor+1) % test_interval_bs == 0:
+                metrics = {}
+                metrics["val"] = test(model, dataset.val_loader, conf)
+                metrics["test"] = test(model, dataset.test_loader, conf)
+                best_metrics, best_perform, best_epoch, is_better = log_metrics(
+                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
 
         time_train_epoch = time.time() - start_train_epoch
 
@@ -256,6 +256,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
     is_better = False
     if metrics["val"]["recall"][topk_] > best_metrics["val"]["recall"][topk_] and metrics["val"]["ndcg"][topk_] > best_metrics["val"]["ndcg"][topk_]:
         torch.save(model.state_dict(), checkpoint_model_path)
+        model.save_embedding(log_path=log_path)
         is_better = True
         dump_conf = dict(conf)
         del dump_conf["device"]
