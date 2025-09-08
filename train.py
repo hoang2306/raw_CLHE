@@ -112,6 +112,8 @@ def main():
         os.makedirs(run_path)
     if not os.path.isdir(log_path):
         os.makedirs(log_path)
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
     if not os.path.isdir(checkpoint_model_path):
         os.makedirs(checkpoint_model_path)
     if not os.path.isdir(checkpoint_conf_path):
