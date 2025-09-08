@@ -103,6 +103,7 @@ def main():
 
     log_path = "./log/%s/%s" % (conf["dataset"], conf["model"])
     run_path = "./runs/%s/%s" % (conf["dataset"], conf["model"])
+    save_path = './save/%s/%s' % (conf["dataset"], conf["model"])
     checkpoint_model_path = "./checkpoints/%s/%s/model" % (
         conf["dataset"], conf["model"])
     checkpoint_conf_path = "./checkpoints/%s/%s/conf" % (
@@ -192,7 +193,7 @@ def main():
                 metrics["val"] = test(model, dataset.val_loader, conf)
                 metrics["test"] = test(model, dataset.test_loader, conf)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
-                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch)
+                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
 
         time_train_epoch = time.time() - start_train_epoch
 
@@ -245,7 +246,7 @@ def write_log(run, log_path, topk, step, metrics):
     print(test_str)
 
 
-def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch):
+def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path):
     for topk in conf["topk"]:
         write_log(run, log_path, topk, batch_anchor, metrics)
 
@@ -256,7 +257,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
     is_better = False
     if metrics["val"]["recall"][topk_] > best_metrics["val"]["recall"][topk_] and metrics["val"]["ndcg"][topk_] > best_metrics["val"]["ndcg"][topk_]:
         torch.save(model.state_dict(), checkpoint_model_path)
-        model.save_embedding(log_path=log_path)
+        model.save_embedding(log_path=save_path)
         is_better = True
         dump_conf = dict(conf)
         del dump_conf["device"]
