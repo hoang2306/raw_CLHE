@@ -196,7 +196,7 @@ def main():
 
         time_train_epoch = time.time() - start_train_epoch
 
-        print(f'time train epoch {epoch}: {time_train_epoch}')
+        print(f'time train epoch {epoch}: {time_train_epoch:.3f}s')
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
