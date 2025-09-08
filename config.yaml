@@ -9,7 +9,7 @@ pog:
   lrs: [1.0e-3] # learning rate
   l2_regs: [1.0e-5] # the l2 regularization weight: lambda_2
   epochs: 50 # number of epochs to train
-  test_interval: 2 # by how many epochs to run the validation and testing.
+  test_interval: 1 # by how many epochs to run the validation and testing.
 
 pog_dense:
   data_path: './datasets/'
