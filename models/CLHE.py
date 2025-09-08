@@ -256,7 +256,7 @@ class CLHE(nn.Module):
             self.noise_weight = conf['noise_weight']
 
     def save_embedding(self, log_path):
-        print(f'log path: {log_path}')
+        # print(f'log path: {log_path}') # ./save/pog/CLHE
         feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
         feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
         torch.save(feat_retrival_view, feat_retrival_view_path)

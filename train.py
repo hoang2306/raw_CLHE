@@ -103,7 +103,7 @@ def main():
 
     log_path = "./log/%s/%s" % (conf["dataset"], conf["model"])
     run_path = "./runs/%s/%s" % (conf["dataset"], conf["model"])
-    save_path = './save/%s/%s' % (conf["dataset"], conf["model"])
+    save_path = './saves/%s/%s' % (conf["dataset"], conf["model"])
     checkpoint_model_path = "./checkpoints/%s/%s/model" % (
         conf["dataset"], conf["model"])
     checkpoint_conf_path = "./checkpoints/%s/%s/conf" % (
@@ -112,8 +112,7 @@ def main():
         os.makedirs(run_path)
     if not os.path.isdir(log_path):
         os.makedirs(log_path)
-    if not os.path.isdir(save_path):
-        os.makedirs(save_path)
+    
     if not os.path.isdir(checkpoint_model_path):
         os.makedirs(checkpoint_model_path)
     if not os.path.isdir(checkpoint_conf_path):
@@ -136,6 +135,10 @@ def main():
     run_path = run_path + "/" + setting
     checkpoint_model_path = checkpoint_model_path + "/" + setting
     checkpoint_conf_path = checkpoint_conf_path + "/" + setting
+    save_path = save_path + "/" + setting
+    if not os.path.isdir(save_path):
+        os.makedirs(save_path)
+
     run = SummaryWriter(run_path)
     try:
         model = getattr(models, conf['model'])(
