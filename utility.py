@@ -176,12 +176,13 @@ class Datasets():
         self.bundle_test_data = BundleTestDataset(conf, b_i_pairs_test_i, b_i_graph_test_i, b_i_pairs_test_gt, b_i_graph_test_gt,
                                                   self.num_bundles, self.num_items)
 
+        # change num_workers to 4 for kaggle running
         self.train_loader = DataLoader(
-            self.bundle_train_data, batch_size=batch_size_train, shuffle=True, num_workers=10)
+            self.bundle_train_data, batch_size=batch_size_train, shuffle=True, num_workers=4)
         self.val_loader = DataLoader(
-            self.bundle_val_data, batch_size=batch_size_test, shuffle=False, num_workers=20)
+            self.bundle_val_data, batch_size=batch_size_test, shuffle=False, num_workers=4)
         self.test_loader = DataLoader(
-            self.bundle_test_data, batch_size=batch_size_test, shuffle=False, num_workers=20)
+            self.bundle_test_data, batch_size=batch_size_test, shuffle=False, num_workers=4)
 
     def combine_graph(self, pairs_list, shape, tag):
         pairs = np.concatenate(pairs_list, axis=0)

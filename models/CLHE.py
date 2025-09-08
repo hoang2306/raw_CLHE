@@ -258,7 +258,7 @@ class CLHE(nn.Module):
     def save_embedding(self, log_path):
         feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
         feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
-        torch.save(self.feat_retrival_view, feat_retrival_view_path)
+        torch.save(feat_retrival_view, feat_retrival_view_path)
         print(f'saved {feat_retrival_view_path}')
 
         item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
