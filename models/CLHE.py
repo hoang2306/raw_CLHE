@@ -157,7 +157,7 @@ class HierachicalEncoder(nn.Module):
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
         s_time_ = time.time()
-        gcn_out, _ = self.gcn(self.item_embeddings)
+        gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx)
         time_gc = time.time() - s_time_
         print(f'time for gcn: {time_gc:3f}s')
         # print(f'gcn_out.shape : {gcn_out.shape}')
@@ -195,7 +195,7 @@ class HierachicalEncoder(nn.Module):
         features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
-        gcn_out, _ = self.gcn(self.item_embeddings) # [n_item, d]
+        gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx) # [n_item, d]
 
         # n_token, N_modal, d = features.shape
 
