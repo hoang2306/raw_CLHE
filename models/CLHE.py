@@ -159,7 +159,7 @@ class HierachicalEncoder(nn.Module):
         # s_time_ = time.time()
         gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx)
         # time_gc = time.time() - s_time_
-        print(f'time for gcn: {time_gc:3f}s')
+        # print(f'time for gcn: {time_gc:3f}s')
         # print(f'gcn_out.shape : {gcn_out.shape}')
         # print(f'gcn_out : {gcn_out}')
 
