@@ -65,13 +65,13 @@ class AGCN(nn.Module):
         cos_adj = torch.cosine_similarity(emb.unsqueeze(0), emb.unsqueeze(1), dim=-1).detach()
         return cos_adj
 
-    def build_topk_normalized_adj(emb, cos_weight=None, k=100, mask_value=0, batch_size=1024):
+    def build_topk_normalized_adj(emb, k=100, mask_value=0, batch_size=1024):
         device = emb.device
         n = emb.size(0)
 
         # optional transform
-        if cos_weight is not None:
-            emb = torch.matmul(emb, cos_weight)  # (n, d)
+        if self.cos_weight is not None:
+            emb = torch.matmul(emb, self.cos_weight)  # (n, d)
 
         # normalize embeddings
         node_norm = F.normalize(emb, p=2, dim=-1)  # (n, d)
@@ -120,7 +120,7 @@ class AGCN(nn.Module):
         # support,support_loss = self.get_neighbor_hard_threshold(support) # (item_num, item_num)
 
         x = inputs
-        support, support_loss = self.build_topk_normalized_adj(inputs, cos_weight=self.cos_weight, k=50, mask_value=0, batch_size=1024)
+        support, support_loss = self.build_topk_normalized_adj(inputs, k=10, mask_value=0, batch_size=1024)
 
         if self.training:
             support = F.dropout(support,self.dropout)
