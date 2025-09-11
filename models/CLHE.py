@@ -155,7 +155,7 @@ class HierachicalEncoder(nn.Module):
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
-        gcn_out = self.gcn(self.item_embeddings)
+        gcn_out, _ = self.gcn(self.item_embeddings)
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
@@ -189,7 +189,7 @@ class HierachicalEncoder(nn.Module):
         features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
-        gcn_out = self.gcn(self.item_embeddings) # [n_item, d]
+        gcn_out, _ = self.gcn(self.item_embeddings) # [n_item, d]
 
         # n_token, N_modal, d = features.shape
 

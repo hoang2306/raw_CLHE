@@ -89,4 +89,4 @@ class AGCN(nn.Module):
         
         # fin_out = torch.cat([inputs.weight[0, :].unsqueeze(dim=0),out], dim=0)
 
-        return fin_out, support_loss
+        return out, support_loss
