@@ -179,7 +179,7 @@ class AGCN_anchor(nn.Module):
     def forward(self,inputs,anchor_idx):
         # x = inputs.weight[1:,:]
         x = inputs
-        anchor = inputs(anchor_idx)
+        anchor = inputs[anchor_idx]
         anchor_adj = self.cosine_matrix_div(x,anchor)
         anchor_adj = self.get_neighbor_hard_threshold(anchor_adj)
 
