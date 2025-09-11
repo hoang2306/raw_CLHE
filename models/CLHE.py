@@ -348,7 +348,7 @@ class CLHE(nn.Module):
         # bundle-level contrastive learning >>>
         bundle_loss = torch.tensor(0).to(self.device)
         if self.bundle_cl_alpha > 0:
-            feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
+            feat_bundle_view2 = self.encoder(seq_modify, anchor_idx=self.anchor_idx)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
