@@ -6,6 +6,7 @@ from models.utils import TransformerEncoder
 from collections import OrderedDict
 import os
 from models.GCN import AGCN
+import time 
 
 eps = 1e-9
 
@@ -155,9 +156,12 @@ class HierachicalEncoder(nn.Module):
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
+        s_time_ = time.time()
         gcn_out, _ = self.gcn(self.item_embeddings)
-        print(f'gcn_out.shape : {gcn_out.shape}')
-        print(f'gcn_out : {gcn_out}')
+        time_gc = time.time() - s_time_
+        print(f'time for gcn: {time_gc:3f}s')
+        # print(f'gcn_out.shape : {gcn_out.shape}')
+        # print(f'gcn_out : {gcn_out}')
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
