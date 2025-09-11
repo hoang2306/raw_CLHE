@@ -68,7 +68,7 @@ class AGCN(nn.Module):
     def forward(self, inputs):
         # inputs shape: (item_num+1, d)
         # x = inputs.weight[1:,:] # shape (item_num, d)
-        x = inputs.weight
+        x = inputs
         support = self.weight_cosine_matrix_div(x) # (item_num, item_num)
         support,support_loss = self.get_neighbor_hard_threshold(support) # (item_num, item_num)
 
