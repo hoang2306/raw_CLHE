@@ -159,7 +159,7 @@ class HierachicalEncoder(nn.Module):
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
-        final_feature = final_feature + gcn_out # [n_item, d]
+        # final_feature = final_feature + gcn_out # [n_item, d]
         # multimodal fusion <<<
 
         return final_feature
@@ -198,7 +198,7 @@ class HierachicalEncoder(nn.Module):
             F.normalize(features, dim=-1)
         ) # [n_item, d]
 
-        final_feature = final_feature + gcn_out  # [n_item, d]
+        # final_feature = final_feature + gcn_out  # [n_item, d]
         
         final_feature = final_feature[seq_modify]  # [bs, n_token, d]
 
