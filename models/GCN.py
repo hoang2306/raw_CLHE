@@ -65,7 +65,7 @@ class AGCN(nn.Module):
         cos_adj = torch.cosine_similarity(emb.unsqueeze(0), emb.unsqueeze(1), dim=-1).detach()
         return cos_adj
 
-    def build_topk_normalized_adj(emb, k=100, mask_value=0, batch_size=1024):
+    def build_topk_normalized_adj(self, emb, k=100, mask_value=0, batch_size=1024):
         device = emb.device
         n = emb.size(0)
 
