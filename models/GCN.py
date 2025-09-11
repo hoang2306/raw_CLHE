@@ -22,18 +22,6 @@ class AGCN(nn.Module):
         if bias:
             self.bias = nn.Parameter(torch.zeros(output_dim))
 
-    def get_neighbor_hard_threshold(self,adj, epsilon=0, mask_value=0):
-        # adj shape: (n, n)
-        mask = (adj > epsilon).detach().float() # (n, n) value 1 and 0
-
-        # keep entry >= epsilon, set entry < epsilon to mask_value (0)
-        raw_adj = adj * mask + (1 - mask) * mask_value # (n,n)
-
-        # adj_dig: D^0.5
-        adj_dig = torch.clamp(torch.pow(torch.sum(raw_adj, dim=-1, keepdim=True),0.5), min=1e-12)
-        update_adj = raw_adj/adj_dig/adj_dig.transpose(-1,-2) # D^-0.5 * A * D^-0.5
-        return update_adj,raw_adj # return normalized adj and raw adj, sim shape (n, n)
-
     def get_neighbor_soft_row_threshold(self,adj, epsilon=100, device=None):
         top_k = min(epsilon, adj.size(-1))
         _, index = torch.topk(adj, top_k, dim=-1)
@@ -52,6 +40,18 @@ class AGCN(nn.Module):
         node_norm = emb.div(torch.norm(emb, p=2, dim=-1, keepdim=True))
         cos_adj = torch.mm(node_norm, node_norm.transpose(-1, -2))
         return cos_adj
+
+    def get_neighbor_hard_threshold(self,adj, epsilon=0, mask_value=0):
+        # adj shape: (n, n)
+        mask = (adj > epsilon).detach().float() # (n, n) value 1 and 0
+
+        # keep entry >= epsilon, set entry < epsilon to mask_value (0)
+        raw_adj = adj * mask + (1 - mask) * mask_value # (n,n)
+
+        # adj_dig: D^0.5
+        adj_dig = torch.clamp(torch.pow(torch.sum(raw_adj, dim=-1, keepdim=True),0.5), min=1e-12)
+        update_adj = raw_adj/adj_dig/adj_dig.transpose(-1,-2) # D^-0.5 * A * D^-0.5
+        return update_adj,raw_adj # return normalized adj and raw adj, sim shape (n, n)
     
     def weight_cosine_matrix_div(self,emb):
         # cos_weight: shape (d, d)
@@ -65,13 +65,62 @@ class AGCN(nn.Module):
         cos_adj = torch.cosine_similarity(emb.unsqueeze(0), emb.unsqueeze(1), dim=-1).detach()
         return cos_adj
 
+    def build_topk_normalized_adj(emb, cos_weight=None, k=100, mask_value=0, batch_size=1024):
+        device = emb.device
+        n = emb.size(0)
+
+        # optional transform
+        if cos_weight is not None:
+            emb = torch.matmul(emb, cos_weight)  # (n, d)
+
+        # normalize embeddings
+        node_norm = F.normalize(emb, p=2, dim=-1)  # (n, d)
+
+        indices_list, values_list = [], []
+        for start in range(0, n, batch_size):
+            end = min(start + batch_size, n)
+            sim_chunk = torch.matmul(node_norm[start:end], node_norm.T)  # (batch, n)
+            topv, topi = torch.topk(sim_chunk, k=k, dim=-1)  # (batch, k)
+            indices_list.append(topi)
+            values_list.append(topv)
+
+        indices = torch.cat(indices_list, dim=0)  # (n, k)
+        values = torch.cat(values_list, dim=0)    # (n, k)
+
+        row = torch.arange(n, device=device).unsqueeze(1).expand_as(indices).reshape(-1)
+        col = indices.reshape(-1)
+        val = values.reshape(-1)
+
+        raw_adj = torch.sparse_coo_tensor(
+            torch.stack([row, col]),
+            val,
+            size=(n, n)
+        ).coalesce()
+
+        deg = torch.sparse.sum(raw_adj, dim=-1).to_dense()  # (n,)
+        deg_inv_sqrt = torch.clamp(deg.pow(-0.5), min=1e-12)
+        d_left = deg_inv_sqrt[row]
+        d_right = deg_inv_sqrt[col]
+
+        norm_val = val * d_left * d_right
+        update_adj = torch.sparse_coo_tensor(
+            torch.stack([row, col]),
+            norm_val,
+            size=(n, n)
+        ).coalesce()
+
+        return update_adj, raw_adj
+
     def forward(self, inputs):
         # inputs shape: (item_num+1, d)
         # x = inputs.weight[1:,:] # shape (item_num, d)
+        # x = inputs
+        # support = self.weight_cosine_matrix_div(x) # (item_num, item_num)
+        # print(f'support shape: {support.shape}')
+        # support,support_loss = self.get_neighbor_hard_threshold(support) # (item_num, item_num)
+
         x = inputs
-        support = self.weight_cosine_matrix_div(x) # (item_num, item_num)
-        print(f'support shape: {support.shape}')
-        support,support_loss = self.get_neighbor_hard_threshold(support) # (item_num, item_num)
+        support, support_loss = self.build_topk_normalized_adj(inputs, cos_weight=self.cos_weight, k=50, mask_value=0, batch_size=1024)
 
         if self.training:
             support = F.dropout(support,self.dropout)
