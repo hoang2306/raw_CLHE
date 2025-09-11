@@ -301,6 +301,7 @@ class CLHE(nn.Module):
     def forward(self, batch, anchor_idx):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
 
+        self.anchor_idx = anchor_idx
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full, anchor_idx=anchor_idx)  # [bs, n_token, d]
 
@@ -319,7 +320,7 @@ class CLHE(nn.Module):
         item_loss = torch.tensor(0).to(self.device)
         if self.cl_alpha > 0:
             if self.item_augmentation == "FD":
-                item_features = self.encoder(batch, all=True)[items_in_batch]
+                item_features = self.encoder(batch, anchor_idx=self.anchor_idx, all=True)[items_in_batch]
                 sub1 = self.cl_projector(self.dropout(item_features))
                 sub2 = self.cl_projector(self.dropout(item_features))
                 item_loss = self.cl_alpha * cl_loss_function(
@@ -362,12 +363,12 @@ class CLHE(nn.Module):
     def evaluate(self, _, batch):
         idx, x, seq_x = batch
         mask = seq_x == self.num_item
-        feat_bundle_view = self.encoder(seq_x)
+        feat_bundle_view = self.encoder(seq_x, anchor_idx=self.anchor_idx)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         feat_retrival_view = self.decoder(
-            (idx, x, seq_x, None, None), all=True)
+            (idx, x, seq_x, None, None), anchor_idx=self.anchor_idx, all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
