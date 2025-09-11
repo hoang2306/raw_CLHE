@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from collections import OrderedDict
 import os
+from models.GCN import AGCN
 
 eps = 1e-9
 
@@ -86,6 +87,13 @@ class HierachicalEncoder(nn.Module):
         self.item_embeddings = nn.Parameter(
             torch.FloatTensor(self.num_item, self.embedding_size))
         init(self.item_embeddings)
+        self.gcn = AGCN(
+            input_dim=self.embedding_size,
+            output_dim=self.embedding_size,
+            layer=2, 
+            dropout=0.2, 
+            bias=False
+        )
         self.multimodal_feature_dim += self.embedding_size
         # BI <<<
 
@@ -147,8 +155,11 @@ class HierachicalEncoder(nn.Module):
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
+        gcn_out = self.gcn(self.item_embeddings)
+
         # multimodal fusion >>>
-        final_feature = self.selfAttention(F.normalize(features, dim=-1))
+        final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
+        final_feature = final_feature + gcn_out # [n_item, d]
         # multimodal fusion <<<
 
         return final_feature
@@ -163,25 +174,35 @@ class HierachicalEncoder(nn.Module):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
+        features = []
+        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature) # [n_item, d]
+        # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
 
-        features = [mm_feature]
-        bi_feature_full = self.item_embeddings
-        bi_feature = bi_feature_full[seq_modify]
-        features.append(bi_feature)
+        features.append(mm_feature_full)
+        bi_feature_full = self.item_embeddings # [n_item, d]
+        # bi_feature = bi_feature_full[seq_modify]
+        features.append(bi_feature_full)
 
         cf_feature_full = self.cf_transformation(self.cf_feature)
         cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        cf_feature = cf_feature_full[seq_modify]
-        features.append(cf_feature)
+        # cf_feature = cf_feature_full[seq_modify]
+        features.append(cf_feature_full)
 
-        features = torch.stack(features, dim=-2)  # [bs, n_token, #modality, d]
-        bs, n_token, N_modal, d = features.shape
+        features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
+        gcn_out = self.gcn(self.item_embeddings) # [n_item, d]
+
+        # n_token, N_modal, d = features.shape
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(
-            F.normalize(features.view(-1, N_modal, d), dim=-1))
+            F.normalize(features.view(-1, N_modal, d), dim=-1)
+        ) # [n_item, d]
+
+        final_feature = final_feature + gcn_out  # [n_item, d]
+        
+        final_feature = final_feature[seq_modify]  # [bs, n_token, d]
+
+        bs, n_token, d = final_feature.shape
         final_feature = final_feature.view(bs, n_token, d)
         # multimodal fusion <<<
 
@@ -256,7 +277,7 @@ class CLHE(nn.Module):
             self.noise_weight = conf['noise_weight']
 
     def save_embedding(self, log_path):
-        # print(f'log path: {log_path}') # ./save/pog/CLHE
+        # print(f'log path: {log_path}') # ./save/pog/CLHE/{setting}
         feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
         feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
         torch.save(feat_retrival_view, feat_retrival_view_path)
