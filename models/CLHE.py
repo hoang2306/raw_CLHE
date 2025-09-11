@@ -156,9 +156,9 @@ class HierachicalEncoder(nn.Module):
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
-        s_time_ = time.time()
+        # s_time_ = time.time()
         gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx)
-        time_gc = time.time() - s_time_
+        # time_gc = time.time() - s_time_
         print(f'time for gcn: {time_gc:3f}s')
         # print(f'gcn_out.shape : {gcn_out.shape}')
         # print(f'gcn_out : {gcn_out}')
@@ -285,17 +285,18 @@ class CLHE(nn.Module):
         self.num_anchors = conf.get("num_anchors", 100)
 
     def save_embedding(self, log_path):
+        pass
         # print(f'log path: {log_path}') # ./save/pog/CLHE/{setting}
-        feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
-        feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
-        torch.save(feat_retrival_view, feat_retrival_view_path)
-        print(f'saved {feat_retrival_view_path}')
+        # feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
+        # feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
+        # torch.save(feat_retrival_view, feat_retrival_view_path)
+        # print(f'saved {feat_retrival_view_path}')
 
-        item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
-        # get embedding from encoder
-        item_embedding = self.decoder.item_embeddings
-        torch.save(item_embedding, item_embedding_path)
-        print(f'saved {item_embedding_path}')
+        # item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
+        # # get embedding from encoder
+        # item_embedding = self.decoder.item_embeddings
+        # torch.save(item_embedding, item_embedding_path)
+        # print(f'saved {item_embedding_path}')
         
 
     def forward(self, batch, anchor_idx):
