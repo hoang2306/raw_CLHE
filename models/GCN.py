@@ -125,8 +125,8 @@ class AGCN(nn.Module):
         print(f'support shape: {support.shape}')
         print(f'support loss shape: {support_loss.shape}')
 
-        if self.training:
-            support = F.dropout(support,self.dropout)
+        # if self.training:
+        #     support = F.dropout(support,self.dropout)
 
         x_fin = [x]
         layer = x
