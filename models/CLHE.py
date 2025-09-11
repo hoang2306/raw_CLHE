@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from collections import OrderedDict
 import os
-from models.GCN import AGCN
+from models.GCN import AGCN, AGCN_anchor
 import time 
 
 eps = 1e-9
