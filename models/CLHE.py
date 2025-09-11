@@ -88,7 +88,7 @@ class HierachicalEncoder(nn.Module):
         self.item_embeddings = nn.Parameter(
             torch.FloatTensor(self.num_item, self.embedding_size))
         init(self.item_embeddings)
-        self.gcn = AGCN(
+        self.gcn = AGCN_anchor(
             input_dim=self.embedding_size,
             output_dim=self.embedding_size,
             layer=1, 
@@ -142,7 +142,7 @@ class HierachicalEncoder(nn.Module):
 
         return y
 
-    def forward_all(self):
+    def forward_all(self, anchor_idx):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
 
@@ -170,9 +170,9 @@ class HierachicalEncoder(nn.Module):
 
         return final_feature
 
-    def forward(self, seq_modify, all=False):
+    def forward(self, seq_modify, anchor_idx, all=False):
         if all is True:
-            return self.forward_all()
+            return self.forward_all(anchor_idx)
 
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
@@ -282,6 +282,8 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
+        self.num_anchors = conf.get("num_anchors", 100)
+
     def save_embedding(self, log_path):
         # print(f'log path: {log_path}') # ./save/pog/CLHE/{setting}
         feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
@@ -296,15 +298,16 @@ class CLHE(nn.Module):
         print(f'saved {item_embedding_path}')
         
 
-    def forward(self, batch):
+    def forward(self, batch, anchor_idx):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
+
         mask = seq_full == self.num_item
-        feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
+        feat_bundle_view = self.encoder(seq_full, anchor_idx=anchor_idx)  # [bs, n_token, d]
 
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(batch, all=True)
+        feat_retrival_view = self.decoder(batch, anchor_idx=anchor_idx, all=True)
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>

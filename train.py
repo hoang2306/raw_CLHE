@@ -71,6 +71,9 @@ def get_cmd():
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
+    # num_anchors 
+    parser.add_argument("--num_anchors", default=500, type=int, help="")
+
     args = parser.parse_args()
     return args
 
@@ -171,13 +174,16 @@ def main():
         pbar = tqdm(enumerate(dataset.train_loader),
                     total=len(dataset.train_loader))
         avg_losses = {}
+
+        # anchor_idx 
+        anchor_idx = torch.randperm(dataset.num_items)[:conf["num_anchors"]]
         for batch_i, batch in pbar:
             model.train(True)
             optimizer.zero_grad()
             batch = [x.to(device) for x in batch]
             batch_anchor = epoch_anchor + batch_i
 
-            losses = model(batch)
+            losses = model(batch, anchor_idx=anchor_idx)
 
             losses['loss'].backward(retain_graph=False)
             optimizer.step()
