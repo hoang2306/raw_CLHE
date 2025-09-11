@@ -122,8 +122,8 @@ class AGCN(nn.Module):
         x = inputs
         support, support_loss = self.build_topk_normalized_adj(inputs, k=10, mask_value=0, batch_size=1024)
 
-        print(f'support shape: {support.shape}')
-        print(f'support loss shape: {support_loss.shape}')
+        # print(f'support shape: {support.shape}')
+        # print(f'support loss shape: {support_loss.shape}')
 
         # if self.training:
         #     support = F.dropout(support,self.dropout)
