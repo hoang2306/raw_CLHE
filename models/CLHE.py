@@ -90,7 +90,7 @@ class HierachicalEncoder(nn.Module):
         self.gcn = AGCN(
             input_dim=self.embedding_size,
             output_dim=self.embedding_size,
-            layer=2, 
+            layer=1, 
             dropout=0.2, 
             bias=False
         )
@@ -161,7 +161,7 @@ class HierachicalEncoder(nn.Module):
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
-        # final_feature = final_feature + gcn_out # [n_item, d]
+        final_feature = final_feature + gcn_out # [n_item, d]
         # multimodal fusion <<<
 
         return final_feature
@@ -200,7 +200,7 @@ class HierachicalEncoder(nn.Module):
             F.normalize(features, dim=-1)
         ) # [n_item, d]
 
-        # final_feature = final_feature + gcn_out  # [n_item, d]
+        final_feature = final_feature + gcn_out  # [n_item, d]
         
         final_feature = final_feature[seq_modify]  # [bs, n_token, d]
 
