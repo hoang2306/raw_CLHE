@@ -205,8 +205,14 @@ class Datasets():
             content_feature = torch.load(os.path.join(
                 self.path, self.name, 'content_feature.pt'), map_location=self.device)
             if not self.is_openai_embedding:
-                description_feature = torch.load(os.path.join(
-                    self.path, self.name, 'description_feature.pt'), map_location=self.device)
+                # description_feature = torch.load(
+                #     os.path.join(self.path, self.name, 'description_feature.pt'), 
+                #     map_location=self.device
+                # )
+                description_feature = torch.load(
+                    os.path.join(self.path, self.name, 'pog_title_emb.pt'), 
+                    map_location=self.device
+                )
             else:
                 description_feature = torch.load(os.path.join(
                     self.path, self.name, 'openai_description_feature.pt'), map_location=self.device)
