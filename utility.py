@@ -212,7 +212,7 @@ class Datasets():
                 description_feature = torch.load(
                     os.path.join(self.path, self.name, 'pog_title_emb.pt'), 
                     map_location=self.device
-                )
+                ).float()
             else:
                 description_feature = torch.load(os.path.join(
                     self.path, self.name, 'openai_description_feature.pt'), map_location=self.device)
