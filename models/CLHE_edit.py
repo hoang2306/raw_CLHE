@@ -4,6 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from collections import OrderedDict
+import os
+from models.GCN import AGCN, AGCN_anchor
+import time 
 
 eps = 1e-9
 
@@ -85,6 +88,13 @@ class HierachicalEncoder(nn.Module):
         self.item_embeddings = nn.Parameter(
             torch.FloatTensor(self.num_item, self.embedding_size))
         init(self.item_embeddings)
+        self.gcn = AGCN_anchor(
+            input_dim=self.embedding_size,
+            output_dim=self.embedding_size,
+            layer=1, 
+            dropout=0.2, 
+            bias=False
+        )
         self.multimodal_feature_dim += self.embedding_size
         # BI <<<
 
@@ -132,7 +142,7 @@ class HierachicalEncoder(nn.Module):
 
         return y
 
-    def forward_all(self):
+    def forward_all(self, anchor_idx):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
 
@@ -146,15 +156,23 @@ class HierachicalEncoder(nn.Module):
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
+        # s_time_ = time.time()
+        gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx)
+        # time_gc = time.time() - s_time_
+        # print(f'time for gcn: {time_gc:3f}s')
+        # print(f'gcn_out.shape : {gcn_out.shape}')
+        # print(f'gcn_out : {gcn_out}')
+
         # multimodal fusion >>>
-        final_feature = self.selfAttention(F.normalize(features, dim=-1))
+        final_feature = self.selfAttention(F.normalize(features, dim=-1)) # [n_item, d]
+        final_feature = final_feature + gcn_out # [n_item, d]
         # multimodal fusion <<<
 
         return final_feature
 
-    def forward(self, seq_modify, all=False):
+    def forward(self, seq_modify, anchor_idx, all=False):
         if all is True:
-            return self.forward_all()
+            return self.forward_all(anchor_idx)
 
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
@@ -162,25 +180,35 @@ class HierachicalEncoder(nn.Module):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
+        features = []
+        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature) # [n_item, d]
+        # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
 
-        features = [mm_feature]
-        bi_feature_full = self.item_embeddings
-        bi_feature = bi_feature_full[seq_modify]
-        features.append(bi_feature)
+        features.append(mm_feature_full)
+        bi_feature_full = self.item_embeddings # [n_item, d]
+        # bi_feature = bi_feature_full[seq_modify]
+        features.append(bi_feature_full)
 
         cf_feature_full = self.cf_transformation(self.cf_feature)
         cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        cf_feature = cf_feature_full[seq_modify]
-        features.append(cf_feature)
+        # cf_feature = cf_feature_full[seq_modify]
+        features.append(cf_feature_full)
 
-        features = torch.stack(features, dim=-2)  # [bs, n_token, #modality, d]
-        bs, n_token, N_modal, d = features.shape
+        features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
+        gcn_out, _ = self.gcn(self.item_embeddings, anchor_idx=anchor_idx) # [n_item, d]
+
+        # n_token, N_modal, d = features.shape
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(
-            F.normalize(features.view(-1, N_modal, d), dim=-1))
+            F.normalize(features, dim=-1)
+        ) # [n_item, d]
+
+        final_feature = final_feature + gcn_out  # [n_item, d]
+        
+        final_feature = final_feature[seq_modify]  # [bs, n_token, d]
+
+        bs, n_token, d = final_feature.shape
         final_feature = final_feature.view(bs, n_token, d)
         # multimodal fusion <<<
 
@@ -254,15 +282,35 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
-    def forward(self, batch):
+        self.num_anchors = conf.get("num_anchors", 100)
+
+    def save_embedding(self, log_path):
+        pass
+        # print(f'log path: {log_path}') # ./save/pog/CLHE/{setting}
+        # feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
+        # feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
+        # torch.save(feat_retrival_view, feat_retrival_view_path)
+        # print(f'saved {feat_retrival_view_path}')
+
+        # item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
+        # # get embedding from encoder
+        # item_embedding = self.decoder.item_embeddings
+        # torch.save(item_embedding, item_embedding_path)
+        # print(f'saved {item_embedding_path}')
+        
+
+    def forward(self, batch, anchor_idx):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
+
+        self.anchor_idx = anchor_idx
         mask = seq_full == self.num_item
-        feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
+        feat_bundle_view = self.encoder(seq_full, anchor_idx=anchor_idx)  # [bs, n_token, d]
 
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(batch, all=True)
+        feat_retrival_view = self.decoder(batch, anchor_idx=anchor_idx, all=True)
+        # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -273,17 +321,17 @@ class CLHE(nn.Module):
         item_loss = torch.tensor(0).to(self.device)
         if self.cl_alpha > 0:
             if self.item_augmentation == "FD":
-                item_features = self.encoder(batch, all=True)[items_in_batch]
+                item_features = self.encoder(batch, anchor_idx=self.anchor_idx, all=True)[items_in_batch]
                 sub1 = self.cl_projector(self.dropout(item_features))
                 sub2 = self.cl_projector(self.dropout(item_features))
                 item_loss = self.cl_alpha * cl_loss_function(
                     sub1.view(-1, self.embedding_size), sub2.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "NA":
-                item_features = self.encoder(batch, all=True)[items_in_batch]
+                item_features = self.encoder(batch, anchor_idx=self.anchor_idx, all=True)[items_in_batch]
                 item_loss = self.cl_alpha * cl_loss_function(
                     item_features.view(-1, self.embedding_size), item_features.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "FN":
-                item_features = self.encoder(batch, all=True)[items_in_batch]
+                item_features = self.encoder(batch, anchor_idx=self.anchor_idx, all=True)[items_in_batch]
                 sub1 = self.cl_projector(
                     self.noise_weight * torch.randn_like(item_features) + item_features)
                 sub2 = self.cl_projector(
@@ -301,7 +349,7 @@ class CLHE(nn.Module):
         # bundle-level contrastive learning >>>
         bundle_loss = torch.tensor(0).to(self.device)
         if self.bundle_cl_alpha > 0:
-            feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
+            feat_bundle_view2 = self.encoder(seq_modify, anchor_idx=self.anchor_idx)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
@@ -316,12 +364,12 @@ class CLHE(nn.Module):
     def evaluate(self, _, batch):
         idx, x, seq_x = batch
         mask = seq_x == self.num_item
-        feat_bundle_view = self.encoder(seq_x)
+        feat_bundle_view = self.encoder(seq_x, anchor_idx=self.anchor_idx)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         feat_retrival_view = self.decoder(
-            (idx, x, seq_x, None, None), all=True)
+            (idx, x, seq_x, None, None), anchor_idx=self.anchor_idx, all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
