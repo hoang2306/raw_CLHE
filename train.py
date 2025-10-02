@@ -71,6 +71,9 @@ def get_cmd():
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
+    # add description feature path
+    parser.add_argument("--des_feat_path", default="", type=str,help="the path of the description feature")
+
     args = parser.parse_args()
     return args
 

@@ -141,6 +141,7 @@ class BundleTestDataset(Dataset):
 
 class Datasets():
     def __init__(self, conf):
+        self.conf = conf
         self.path = conf['data_path']
         self.name = conf['dataset']
         self.device = conf["device"]
@@ -210,7 +211,7 @@ class Datasets():
                 #     map_location=self.device
                 # )
                 description_feature = torch.load(
-                    os.path.join(self.path, self.name, 'pog_title_emb.pt'), 
+                    os.path.join(self.path, self.name, self.conf['des_feat_path']), 
                     map_location=self.device
                 ).float()
             else:
