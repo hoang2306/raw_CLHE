@@ -66,6 +66,7 @@ class MoE_Layer(nn.Module):
         topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1) # topk_logits: [bs, top_k], topk_indices: [bs, top_k]
         
         topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
+        print(f'topk_weights: {topk_weights}')
         
         selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
         
