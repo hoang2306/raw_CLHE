@@ -73,6 +73,8 @@ def get_cmd():
 
     # adapter modal 
     parser.add_argument("-am", "--adapter_modal", default="MLP", type=str, help="which model to use")
+    # topk for MoE 
+    parser.add_argument("-k_moe", "--topk_MoE", default=2, type=int, help="")
 
     args = parser.parse_args()
     return args
