@@ -53,7 +53,7 @@ class MoE_Layer(nn.Module):
                 ('act1', nn.ReLU()),
                 ('w2', nn.Linear(input_dim, 256)),
                 ('act2', nn.ReLU()),
-                ('w3', nn.Linear(256, 64)),
+                ('w3', nn.Linear(256, self.num_experts)),
             ]))
 
     def forward(self, x, return_loss=False):
