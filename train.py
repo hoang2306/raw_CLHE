@@ -86,6 +86,8 @@ def get_cmd():
     parser.add_argument("-type_g", "--type_gate", default="linear", type=str, help="")
     # noise std gate
     parser.add_argument("--noise_gate", default=0.3, type=float, help="")
+    # balance loss flag
+    parser.add_argument("--use_balance_loss", action="store_true", help="debug mode")
 
     args = parser.parse_args()
     return args

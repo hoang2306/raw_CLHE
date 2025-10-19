@@ -450,7 +450,7 @@ class CLHE(nn.Module):
         # bundle-level contrastive learning <<<
 
 
-        if self.conf['adapter_modal'] == 'MoE':
+        if self.conf['adapter_modal'] == 'MoE' and self.conf['use_balance_loss']:
             # loss += (balance_loss_1 + balance_loss_2) * 1e-3
             all_loss = loss + item_loss + bundle_loss + (balance_loss_1 + balance_loss_2) * 1e-3
         else:
