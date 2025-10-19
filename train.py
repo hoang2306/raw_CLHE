@@ -73,6 +73,8 @@ def get_cmd():
 
     # debug flag
     parser.add_argument("--debug", action="store_true", help="debug mode")
+    # early stopping
+    parser.add_argument("--early_stop", default=20, type=int, help="")
 
     # adapter modal 
     parser.add_argument("-am", "--adapter_modal", default="MLP", type=str, help="which model to use")
@@ -221,6 +223,10 @@ def main():
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
+
+        if epoch - best_epoch >= conf["early_stop"]:
+            print("early stopping at epoch %d" % (epoch))
+            break
 
 
 def init_best_metrics(conf):
