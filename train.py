@@ -227,7 +227,8 @@ def main():
         avg_losses = {}
 
         if epoch - best_epoch >= conf["early_stop"]:
-            print("early stopping at epoch %d" % (epoch))
+            print("Early stopping at epoch %d" % (epoch))
+            print(f"Best epoch at {best_epoch}")
             break
 
 
