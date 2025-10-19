@@ -229,6 +229,7 @@ def main():
         if epoch - best_epoch >= conf["early_stop"]:
             print("Early stopping at epoch %d" % (epoch))
             print(f"Best epoch at {best_epoch}")
+            print(best_metrics)
             break
 
 
