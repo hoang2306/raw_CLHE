@@ -71,12 +71,17 @@ def get_cmd():
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
+    # debug flag
+    parser.add_argument("--debug", action="store_true", help="debug mode")
+
     # adapter modal 
     parser.add_argument("-am", "--adapter_modal", default="MLP", type=str, help="which model to use")
     # topk for MoE 
     parser.add_argument("-k_moe", "--topk_MoE", default=2, type=int, help="")
     # n expert for MoE 
     parser.add_argument("-n_expert_moe", "--num_expert_MoE", default=4, type=int, help="")
+    # config gate 
+    parser.add_argument("-type_g", "--type_gate", default="linear", type=str, help="")
 
     args = parser.parse_args()
     return args

@@ -37,24 +37,25 @@ def cl_loss_function(a, b, temp=0.2):
 
 
 class MoE_Layer(nn.Module):
-    def __init__(self, input_dim, output_dim, num_experts, top_k=2):
+    def __init__(self, conf, input_dim, output_dim, num_experts, top_k=2):
         super().__init__()
         self.num_experts = num_experts
         self.top_k = top_k
-        
+        self.conf = conf 
         self.experts = torch.nn.ModuleList([
             torch.nn.Linear(input_dim, output_dim) for _ in range(num_experts)
         ])
         
-        self.gate = torch.nn.Linear(input_dim, num_experts)
-
-        # self.gate = nn.Sequential(OrderedDict([
-        #         ('w1', nn.Linear(input_dim, input_dim)),
-        #         ('act1', nn.ReLU()),
-        #         ('w2', nn.Linear(input_dim, 256)),
-        #         ('act2', nn.ReLU()),
-        #         ('w3', nn.Linear(256, self.num_experts)),
-        #     ]))
+        if self.conf['type_gate'] == 'linear':
+            self.gate = torch.nn.Linear(input_dim, num_experts)
+        if self.conf['type_gate'] == 'MLP':
+            self.gate = nn.Sequential(OrderedDict([
+                ('w1', nn.Linear(input_dim, input_dim)),
+                ('act1', nn.ReLU()),
+                ('w2', nn.Linear(input_dim, 256)),
+                ('act2', nn.ReLU()),
+                ('w3', nn.Linear(256, self.num_experts)),
+            ]))
 
     def forward(self, x, return_loss=False):
         # x: [bs, input_dim]
@@ -66,7 +67,8 @@ class MoE_Layer(nn.Module):
         topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1) # topk_logits: [bs, top_k], topk_indices: [bs, top_k]
         
         topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
-        print(f'topk_weights: {topk_weights}')
+        if self.conf['debug']:
+            print(f'topk_weights: {topk_weights}')
         
         selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
         
@@ -151,12 +153,14 @@ class HierachicalEncoder(nn.Module):
             self.t_encoder = simple_dense(self.text_feature)
         if self.conf['adapter_modal'] == 'MoE':
             self.c_encoder = MoE_Layer(
+                conf=self.conf,
                 input_dim=self.content_feature.shape[1],
                 output_dim=self.embedding_size,
                 num_experts=4,
                 top_k=self.conf['topk_MoE']
             )
             self.t_encoder = MoE_Layer(
+                conf=self.conf,
                 input_dim=self.text_feature.shape[1],
                 output_dim=self.embedding_size,
                 num_experts=4,
@@ -218,8 +222,12 @@ class HierachicalEncoder(nn.Module):
         return y
 
     def forward_all(self):
-        c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        if self.conf['adapter_modal'] == 'MoE':
+            c_feature, c_balance_loss = self.c_encoder(self.content_feature, return_loss=True)
+            t_feature, t_balance_loss = self.t_encoder(self.text_feature, return_loss=True)
+        if self.conf['adapter_modal'] in ['MLP', 'simple_MLP']:
+            c_feature = self.c_encoder(self.content_feature)
+            t_feature = self.t_encoder(self.text_feature)
 
         mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
         features = [mm_feature_full]
@@ -235,7 +243,10 @@ class HierachicalEncoder(nn.Module):
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
         # multimodal fusion <<<
 
-        return final_feature
+        if self.conf['adapter_modal'] == 'MoE':
+            return final_feature, c_balance_loss + t_balance_loss
+        else:
+            return final_feature, final_feature 
 
     def forward(self, seq_modify, all=False):
         if all is True:
@@ -244,8 +255,16 @@ class HierachicalEncoder(nn.Module):
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
 
-        c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # c_feature = self.c_encoder(self.content_feature)
+        # t_feature = self.t_encoder(self.text_feature)
+
+        if self.conf['adapter_modal'] == 'MoE':
+            c_feature, c_balance_loss = self.c_encoder(self.content_feature, return_loss=True)
+            t_feature, t_balance_loss = self.t_encoder(self.text_feature, return_loss=True)
+        if self.conf['adapter_modal'] in ['MLP', 'simple_MLP']:
+            c_feature = self.c_encoder(self.content_feature)
+            t_feature = self.t_encoder(self.text_feature)
+
 
         mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
         mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
@@ -269,11 +288,18 @@ class HierachicalEncoder(nn.Module):
         final_feature = final_feature.view(bs, n_token, d)
         # multimodal fusion <<<
 
-        return final_feature
+        if self.conf['adapter_modal'] == 'MoE':
+            return final_feature, c_balance_loss + t_balance_loss
+        else:
+            return final_feature, final_feature
 
     def generate_two_subs(self, dropout_ratio=0):
-        c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        if self.conf['adapter_modal'] == 'MoE':
+            c_feature, c_balance_loss = self.c_encoder(self.content_feature, return_loss=True)
+            t_feature, t_balance_loss = self.t_encoder(self.text_feature, return_loss=True)
+        if self.conf['adapter_modal'] in ['MLP', 'simple_MLP']:
+            c_feature = self.c_encoder(self.content_feature)
+            t_feature = self.t_encoder(self.text_feature)
 
         # early-fusion
         mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
@@ -356,12 +382,12 @@ class CLHE(nn.Module):
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
-        feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
+        feat_bundle_view, balance_loss_1 = self.encoder(seq_full)  # [bs, n_token, d]
 
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(batch, all=True)
+        feat_retrival_view, balance_loss_2 = self.decoder(batch, all=True)
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
@@ -407,8 +433,14 @@ class CLHE(nn.Module):
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
 
+
+        if self.conf['adapter_modal'] == 'MoE':
+            # loss += (balance_loss_1 + balance_loss_2) * 1e-3
+            all_loss = loss + item_loss + bundle_loss + (balance_loss_1 + balance_loss_2) * 1e-3
+        else:
+            all_loss = loss + item_loss + bundle_loss
         return {
-            'loss': loss + item_loss + bundle_loss,
+            'loss': all_loss,
             'item_loss': item_loss.detach(),
             'bundle_loss': bundle_loss.detach()
         }
@@ -416,11 +448,11 @@ class CLHE(nn.Module):
     def evaluate(self, _, batch):
         idx, x, seq_x = batch
         mask = seq_x == self.num_item
-        feat_bundle_view = self.encoder(seq_x)
+        feat_bundle_view, _ = self.encoder(seq_x)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(
+        feat_retrival_view, _ = self.decoder(
             (idx, x, seq_x, None, None), all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
