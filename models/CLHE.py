@@ -46,7 +46,15 @@ class MoE_Layer(nn.Module):
             torch.nn.Linear(input_dim, output_dim) for _ in range(num_experts)
         ])
         
-        self.gate = torch.nn.Linear(input_dim, num_experts)
+        # self.gate = torch.nn.Linear(input_dim, num_experts)
+
+        self.gate = nn.Sequential(OrderedDict([
+                ('w1', nn.Linear(input_dim, input_dim)),
+                ('act1', nn.ReLU()),
+                ('w2', nn.Linear(input_dim, 256)),
+                ('act2', nn.ReLU()),
+                ('w3', nn.Linear(256, 64)),
+            ]))
 
     def forward(self, x, return_loss=False):
         # x: [bs, input_dim]
