@@ -43,11 +43,16 @@ class MoE_Layer(nn.Module):
         self.top_k = top_k
         self.conf = conf 
         self.experts = torch.nn.ModuleList([
-            torch.nn.Linear(input_dim, output_dim) for _ in range(num_experts)
+            nn.Linear(input_dim, output_dim) for _ in range(num_experts)
         ])
-        
+        # init experts 
+        for expert in self.experts:
+            init(expert) 
+  
         if self.conf['type_gate'] == 'linear':
-            self.gate = torch.nn.Linear(input_dim, num_experts)
+            self.gate = nn.Linear(input_dim, num_experts)
+            # init gate
+            init(self.gate)
         if self.conf['type_gate'] == 'MLP':
             self.gate = nn.Sequential(OrderedDict([
                 ('w1', nn.Linear(input_dim, input_dim)),
@@ -56,6 +61,9 @@ class MoE_Layer(nn.Module):
                 ('act2', nn.ReLU()),
                 ('w3', nn.Linear(256, self.num_experts)),
             ]))
+            # init the MLP gate
+            for m in self.gate:
+                init(m)
 
         self.noisy_std = self.conf['noise_gate']
 

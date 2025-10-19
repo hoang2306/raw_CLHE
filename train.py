@@ -229,7 +229,15 @@ def main():
         if epoch - best_epoch >= conf["early_stop"]:
             print("Early stopping at epoch %d" % (epoch))
             print(f"Best epoch at {best_epoch}")
-            print(best_metrics)
+            # print(best_metrics)
+            topk_list = conf['topk']
+            for type_metric in ['val', 'test']:
+                for k in topk_list:
+                    recall_k = best_metrics[type_metric]['recall'][k]
+                    ndcg_k = best_metrics[type_metric]['ndcg'][k]
+                    print(f'{type_metric} recall@{k}: {recall_k:.4f}')
+                    print(f'{type_metric} ndcg@{k}: {ndcg_k:.4f}')
+                print('-' * 30)
             break
 
 
