@@ -55,11 +55,11 @@ class MoE_Layer(nn.Module):
             init(self.gate)
         if self.conf['type_gate'] == 'MLP':
             self.gate = nn.Sequential(OrderedDict([
-                ('w1', nn.Linear(input_dim, input_dim)),
+                ('w1', nn.Linear(input_dim, 256)),
                 ('act1', nn.ReLU()),
-                ('w2', nn.Linear(input_dim, 256)),
+                ('w2', nn.Linear(256, 64)),
                 ('act2', nn.ReLU()),
-                ('w3', nn.Linear(256, self.num_experts)),
+                ('w3', nn.Linear(64, self.num_experts)),
             ]))
             # init the MLP gate
             for m in self.gate:
