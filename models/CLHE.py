@@ -80,17 +80,24 @@ class MoE_Layer(nn.Module):
 
         aux_loss = self._compute_load_balancing_loss(gate_logits)
 
-        topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1) # topk_logits: [bs, top_k], topk_indices: [bs, top_k]
-        
-        topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
-        if self.conf['debug']:
-            print(f'topk_weights: {topk_weights}')
+        if not self.training:
+            # inference, use top-k experts
+            topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1) # topk_logits: [bs, top_k], topk_indices: [bs, top_k]
+            topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
+            if self.conf['debug']:
+                print(f'topk_weights: {topk_weights}')
+            selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
+            topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
+            output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
+        else:
+            # training, use activate all expert to easily optimize 
+            gate_weights = F.softmax(gate_logits, dim=1) # [bs, n_experts]
+            # expert_outputs: [bs, n_experts, dim]
+            # reshape gate_weights: [bs, n_experts] -> [bs, n_experts, 1]
+            output = torch.sum(
+                gate_weights.unsqueeze(-1) * expert_outputs, dim=1
+            )
 
-        selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
-        
-        topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
-        output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
-        
         if return_loss:
             return output, aux_loss
         else:
