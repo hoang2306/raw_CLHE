@@ -408,13 +408,16 @@ class CLHE(nn.Module):
                 if self.conf['debug']:
                     # print(f'encoder all: {self.encoder(batch, all=True)}')
                     pass 
-                item_features, _ = self.encoder(batch, all=True)[items_in_batch]
+                k, _ = self.encoder(batch, all=True)
+                item_features = k[items_in_batch]
                 item_loss = self.cl_alpha * cl_loss_function(
                     item_features.view(-1, self.embedding_size), item_features.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "FN":
                 if self.conf['debug']:
-                    print(f'encoder all: {self.encoder(batch, all=True)}')
-                item_features, _ = self.encoder(batch, all=True)[items_in_batch]
+                    # print(f'encoder all: {self.encoder(batch, all=True)}')
+                    pass 
+                k, _ = self.encoder(batch, all=True)
+                item_features = k[items_in_batch]
                 sub1 = self.cl_projector(
                     self.noise_weight * torch.randn_like(item_features) + item_features)
                 sub2 = self.cl_projector(
