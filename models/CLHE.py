@@ -144,13 +144,13 @@ class HierachicalEncoder(nn.Module):
                 input_dim=self.content_feature.shape[1],
                 output_dim=self.embedding_size,
                 num_experts=4,
-                top_k=1
+                top_k=self.conf['topk_MoE']
             )
             self.t_encoder = MoE_Layer(
                 input_dim=self.text_feature.shape[1],
                 output_dim=self.embedding_size,
                 num_experts=4,
-                top_k=1
+                top_k=self.conf['topk_MoE']
             )
 
         self.multimodal_feature_dim = self.embedding_size
