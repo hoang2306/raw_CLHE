@@ -86,13 +86,13 @@ class HierachicalEncoder(nn.Module):
             return module
 
         # encoders for media feature
-        if self.conf['adapter_model'] == "MLP":
+        if self.conf['adapter_modal'] == "MLP":
             self.c_encoder = dense(self.content_feature)
             self.t_encoder = dense(self.text_feature)
         if self.conf['adapter_modal'] == 'simple_MLP':
             self.c_encoder = simple_dense(self.content_feature)
             self.t_encoder = simple_dense(self.text_feature)
-            
+
         self.multimodal_feature_dim = self.embedding_size
         # MM <<<
 
