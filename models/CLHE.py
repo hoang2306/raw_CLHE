@@ -57,7 +57,7 @@ class MoE_Layer(nn.Module):
                 ('w3', nn.Linear(256, self.num_experts)),
             ]))
 
-        self.noisy_std = 0.3
+        self.noisy_std = self.conf['noise_gate']
 
     def forward(self, x, return_loss=False):
         # x: [bs, input_dim]
@@ -78,8 +78,6 @@ class MoE_Layer(nn.Module):
         if self.conf['debug']:
             print(f'topk_weights: {topk_weights}')
 
-
-        
         selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
         
         topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]

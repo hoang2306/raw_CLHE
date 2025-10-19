@@ -82,6 +82,8 @@ def get_cmd():
     parser.add_argument("-n_expert_moe", "--num_expert_MoE", default=4, type=int, help="")
     # config gate 
     parser.add_argument("-type_g", "--type_gate", default="linear", type=str, help="")
+    # noise std gate
+    parser.add_argument("--noise_gate", default=0.3, type=float, help="")
 
     args = parser.parse_args()
     return args
