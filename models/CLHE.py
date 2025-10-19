@@ -57,11 +57,19 @@ class MoE_Layer(nn.Module):
                 ('w3', nn.Linear(256, self.num_experts)),
             ]))
 
+        self.noisy_std = 0.3
+
     def forward(self, x, return_loss=False):
         # x: [bs, input_dim]
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1) # [bs, num_experts, output_dim]
         
         gate_logits = self.gate(x) # [bs, num_experts]
+
+        if self.training: 
+            # only add noise when training
+            noise = torch.randn_like(gate_logits) * self.noisy_std  
+            gate_logits = gate_logits + noise 
+
         aux_loss = self._compute_load_balancing_loss(gate_logits)
 
         topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1) # topk_logits: [bs, top_k], topk_indices: [bs, top_k]
@@ -69,6 +77,8 @@ class MoE_Layer(nn.Module):
         topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
         if self.conf['debug']:
             print(f'topk_weights: {topk_weights}')
+
+
         
         selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1))) 
         
