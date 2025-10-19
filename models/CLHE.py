@@ -74,11 +74,25 @@ class HierachicalEncoder(nn.Module):
             for m in module:
                 init(m)
             return module
+        
+        def simple_dense(feature):
+            # simple dense only use one linear mapping without non-linear activation 
+            module = nn.Sequential(OrderedDict([
+                ('w1', nn.Linear(feature.shape[1], 64)),
+            ]))
+
+            for m in module:
+                init(m)
+            return module
 
         # encoders for media feature
-        self.c_encoder = dense(self.content_feature)
-        self.t_encoder = dense(self.text_feature)
-
+        if self.conf['adapter_model'] == "MLP":
+            self.c_encoder = dense(self.content_feature)
+            self.t_encoder = dense(self.text_feature)
+        if self.conf['adapter_modal'] == 'simple_MLP':
+            self.c_encoder = simple_dense(self.content_feature)
+            self.t_encoder = simple_dense(self.text_feature)
+            
         self.multimodal_feature_dim = self.embedding_size
         # MM <<<
 

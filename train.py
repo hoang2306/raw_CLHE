@@ -71,6 +71,9 @@ def get_cmd():
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
+    # adapter modal 
+    parser.add_argument("-am", "--adapter_modal", default="MLP", type=str, help="which model to use")
+
     args = parser.parse_args()
     return args
 
