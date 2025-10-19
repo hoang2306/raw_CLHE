@@ -48,7 +48,7 @@ class MoE_Layer(nn.Module):
         
         self.gate = torch.nn.Linear(input_dim, num_experts)
 
-    def forward(self, x):
+    def forward(self, x, return_loss=False):
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
         
         gate_logits = self.gate(x)
@@ -63,7 +63,10 @@ class MoE_Layer(nn.Module):
         topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
         output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
         
-        return output, aux_loss
+        if return_loss:
+            return output, aux_loss
+        else:
+            return output
     
     def _compute_load_balancing_loss(self, gate_logits):
         gates = F.softmax(gate_logits, dim=-1)  # [batch_size, num_experts]
