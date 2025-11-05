@@ -332,9 +332,10 @@ class CLHE(nn.Module):
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
 
+        learn_loss = loss + item_loss + bundle_loss if self.conf['loss_mode'] == 'full_loss' else loss
         return {
             # 'loss': loss + item_loss + bundle_loss,
-            'loss': loss,
+            'loss': learn_loss,
             'item_loss': item_loss.detach(),
             'bundle_loss': bundle_loss.detach()
         }
