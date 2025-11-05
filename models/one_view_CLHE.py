@@ -280,7 +280,8 @@ class CLHE(nn.Module):
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
+        # feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
+        feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
@@ -339,8 +340,8 @@ class CLHE(nn.Module):
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(
-            (idx, x, seq_x, None, None), all=True)
+        # feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
+        feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
