@@ -236,7 +236,8 @@ class CLHE(nn.Module):
 
         self.encoder = HierachicalEncoder(conf, raw_graph, features)
         # decoder has the similar structure of the encoder
-        # self.decoder = HierachicalEncoder(conf, raw_graph, features)
+        if self.conf['view_mode'] == 'dual_view':
+            self.decoder = HierachicalEncoder(conf, raw_graph, features)
 
         self.bundle_encode = TransformerEncoder(conf={
             "n_layer": conf["trans_layer"],
@@ -282,8 +283,10 @@ class CLHE(nn.Module):
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        # feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
-        feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
+        if self.conf['view_mode'] == 'dual_view':
+            feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
+        else:
+            feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
@@ -342,8 +345,10 @@ class CLHE(nn.Module):
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        # feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
-        feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
+        if self.conf['view_mode'] == 'dual_view'
+            feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
+        else:
+            feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
