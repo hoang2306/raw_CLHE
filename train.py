@@ -71,7 +71,10 @@ def get_cmd():
     parser.add_argument("--seed", default=2023, type=int, help="")
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
-    args = parser.parse_args()
+    # early stopping
+    parser.add_argument()
+
+    args = parser.parse_args("--early_stop", default=10, type=int, help="")
     return args
 
 
@@ -207,6 +210,10 @@ def main():
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
         avg_losses = {}
+
+        if epoch - best_epoch >= conf['early_stop']:
+            print(f'stop at epoch: {epoch}')
+            break
 
 
 def init_best_metrics(conf):
