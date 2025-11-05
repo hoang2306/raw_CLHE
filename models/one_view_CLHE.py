@@ -333,7 +333,8 @@ class CLHE(nn.Module):
         # bundle-level contrastive learning <<<
 
         return {
-            'loss': loss + item_loss + bundle_loss,
+            # 'loss': loss + item_loss + bundle_loss,
+            'loss': loss,
             'item_loss': item_loss.detach(),
             'bundle_loss': bundle_loss.detach()
         }
