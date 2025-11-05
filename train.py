@@ -72,9 +72,9 @@ def get_cmd():
     parser.add_argument("--epoch", default=-1, type=int, help="")
 
     # early stopping
-    parser.add_argument()
+    parser.add_argument("--early_stop", default=10, type=int, help="")
 
-    args = parser.parse_args("--early_stop", default=10, type=int, help="")
+    args = parser.parse_args()
     return args
 
 
