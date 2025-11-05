@@ -236,7 +236,7 @@ class CLHE(nn.Module):
 
         self.encoder = HierachicalEncoder(conf, raw_graph, features)
         # decoder has the similar structure of the encoder
-        self.decoder = HierachicalEncoder(conf, raw_graph, features)
+        # self.decoder = HierachicalEncoder(conf, raw_graph, features)
 
         self.bundle_encode = TransformerEncoder(conf={
             "n_layer": conf["trans_layer"],
