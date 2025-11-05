@@ -160,27 +160,29 @@ class HierachicalEncoder(nn.Module):
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
 
-        c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # c_feature = self.c_encoder(self.content_feature)
+        # t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
 
-        features = []
-        features.append(mm_feature_full)
-        bi_feature_full = self.item_embeddings
-        # bi_feature = bi_feature_full[seq_modify]
-        features.append(bi_feature_full)
+        # features = []
+        # features.append(mm_feature_full)
+        # bi_feature_full = self.item_embeddings
+        # # bi_feature = bi_feature_full[seq_modify]
+        # features.append(bi_feature_full)
 
-        cf_feature_full = self.cf_transformation(self.cf_feature)
-        cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        # cf_feature = cf_feature_full[seq_modify]
-        features.append(cf_feature_full)
+        # cf_feature_full = self.cf_transformation(self.cf_feature)
+        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        # # cf_feature = cf_feature_full[seq_modify]
+        # features.append(cf_feature_full)
 
-        features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
+        # features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
 
-        # multimodal fusion >>>
-        final_feature = self.selfAttention(F.normalize(features, dim=-1))
+        # # multimodal fusion >>>
+        # final_feature = self.selfAttention(F.normalize(features, dim=-1))
+
+        final_feature = self.forward_all()
         final_feature = final_feature[seq_modify] 
         bs, n_token, d = final_feature.shape
         final_feature = final_feature.view(bs, n_token, d)
