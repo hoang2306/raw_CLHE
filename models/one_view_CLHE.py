@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.utils import TransformerEncoder
+from models.linear_attention import LinearAttention
 from collections import OrderedDict
 import os
 
@@ -113,6 +114,8 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
+        self.linear_attention = LinearAttention(d_input=self.embedding_size, d_k=self.embedding_size, device=self.device)
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -150,6 +153,9 @@ class HierachicalEncoder(nn.Module):
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
         # multimodal fusion <<<
+
+        # feed through linear attention
+        final_feature = self.linear_attention(final_feature)  # [n_items, d]
 
         return final_feature # [n_items, d]
 
