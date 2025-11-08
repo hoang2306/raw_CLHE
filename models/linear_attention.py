@@ -29,6 +29,8 @@ class LinearAttention(nn.Module):
         Q_phi = self.phi(Q)
         K_phi = self.phi(K)
 
+        print(f'Q_phi shape: {Q_phi.shape}, K_phi shape: {K_phi.shape}, V shape: {V.shape}')
+
         # Compute linear attention
         KV = K_phi.T @ V # (d_k, d_k)
         ones_vec = torch.ones(n, 1, device=self.device)
