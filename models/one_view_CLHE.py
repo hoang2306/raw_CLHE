@@ -155,7 +155,8 @@ class HierachicalEncoder(nn.Module):
         # multimodal fusion <<<
 
         # feed through linear attention
-        final_feature = self.linear_attention(final_feature)  # [n_items, d]
+        if self.conf['linear_attention'] == 'yes':
+            final_feature = self.linear_attention(final_feature)  # [n_items, d]
 
         return final_feature # [n_items, d]
 
