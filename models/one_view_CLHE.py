@@ -156,6 +156,7 @@ class HierachicalEncoder(nn.Module):
 
         # feed through linear attention
         if self.conf['linear_attention'] == 'yes':
+            # TODO: 
             final_feature = self.linear_attention(final_feature)  # [n_items, d]
 
         return final_feature # [n_items, d]
