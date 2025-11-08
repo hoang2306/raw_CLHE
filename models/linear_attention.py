@@ -1,8 +1,6 @@
-
 import torch
-import torch.nn as nn 
+import torch.nn as nn
 import torch.nn.functional as F
-
 
 class LinearAttention(nn.Module):
     def __init__(self, d_input, d_k=64, device=None):
@@ -11,45 +9,26 @@ class LinearAttention(nn.Module):
         self.d_input = d_input
         self.d_k = d_k
 
-        self.W_q = nn.Parameter(torch.randn(d_input, d_k))
-        self.W_k = nn.Parameter(torch.randn(d_input, d_k))
-        self.W_v = nn.Parameter(torch.randn(d_input, d_k))
+        self.W_q = nn.Linear(d_input, d_k, bias=False)
+        self.W_k = nn.Linear(d_input, d_k, bias=False)
+        self.W_v = nn.Linear(d_input, d_k, bias=False)
 
     def phi(self, x):
-        return F.elu(x) + 1
-
-    # def forward(self, X):
-    #     X = X.to(self.device)
-    #     n, d = X.shape
-
-    #     Q = X @ self.W_q   # (n, d_k)
-    #     K = X @ self.W_k   # (n, d_k)
-    #     V = X @ self.W_v   # (n, d_k)
-
-    #     Q_phi = self.phi(Q)
-    #     K_phi = self.phi(K)
-
-    #     print(f'Q_phi shape: {Q_phi.shape}, K_phi shape: {K_phi.shape}, V shape: {V.shape}')
-
-    #     # Compute linear attention
-    #     KV = K_phi.T @ V # (d_k, d_k)
-    #     ones_vec = torch.ones(n, 1, device=self.device)
-    #     Z = 1 / (Q_phi @ K_phi.T @ ones_vec + 1e-8)   # add eps for stability
-    #     out = (Q_phi @ KV) * Z # (n, d_k)
-    #     return out
+        return F.elu(x) + 1  # positive feature map
 
     def forward(self, X):
         X = X.to(self.device)
-        Q = self.phi(X @ self.W_q)
-        K = self.phi(X @ self.W_k)
-        V = X @ self.W_v
+        Q = self.phi(self.W_q(X))  # (n, d_k)
+        K = self.phi(self.W_k(X))  # (n, d_k)
+        V = self.W_v(X)            # (n, d_k)
 
-        # Compute normalization efficiently
-        sum_K = K.sum(dim=0, keepdim=True)          # (1, d_k)
-        norm_factor = 1.0 / (Q * sum_K).sum(dim=1, keepdim=True).clamp(min=1e-6)  # (n, 1)
+        # Precompute key-value summary
+        KV = K.T @ V               # (d_k, d_k)
+        sum_K = K.sum(dim=0, keepdim=True)  # (1, d_k)
 
-        # Linear attention core
-        KV = K.T @ V                               # (d_k, d_k)
-        out = (Q @ KV) * norm_factor                # (n, d_k)
+        # Normalization term
+        Z = 1.0 / (Q @ sum_K.T).clamp(min=1e-6)  # (n, 1)
 
+        # Linear attention output
+        out = (Q @ KV) * Z
         return out
