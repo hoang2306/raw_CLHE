@@ -114,6 +114,9 @@ class BundleTrainDataset(Dataset):
             [i for i in range(self.num_items) if i not in positive_set],
             bundle_size
         )
+        # convert to tensor to pad 
+        negative_indices = torch.LongTensor(negative_indices)
+        positive_indices = torch.LongTensor(positive_indices)
         # pad positive and negative indices to fixed length
         positive_indices = F.pad(positive_indices, (0, bundle_size-len(positive_indices)), value=self.num_items)
         negative_indices = F.pad(negative_indices, (0, bundle_size-len(negative_indices)), value=self.num_items)
