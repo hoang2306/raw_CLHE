@@ -102,10 +102,12 @@ class BundleTrainDataset(Dataset):
         # full: multi-hot vector of bundle 
 
         # get size of bundles
-        bundle_size = full.sum().item()
-        print(f'bundle size: {bundle_size}')
+        bundle_size = int(full.sum().item())
+        # print(f'bundle size: {bundle_size}')
         # sample negative items for training
         positive_indices = torch.argwhere(full)[:, 0].tolist()
+        print(f'positive indices: {positive_indices}')
+        exit()
         # convert to set for faster operation
         positive_set = set(positive_indices)
         negative_indices = random.sample(
