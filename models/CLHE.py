@@ -19,7 +19,8 @@ def init(m):
 
 
 def recon_loss_function(recon_x, x):
-    negLogLike = torch.sum(F.log_softmax(recon_x, 1) * x, -1) / x.sum(dim=-1)
+    temp = 0.2 
+    negLogLike = torch.sum(F.log_softmax(recon_x / temp, 1) * x, -1) / x.sum(dim=-1)
     negLogLike = -torch.mean(negLogLike)
     return negLogLike
 
