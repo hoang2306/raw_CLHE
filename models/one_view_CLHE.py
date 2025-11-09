@@ -286,7 +286,7 @@ class CLHE(nn.Module):
             # bundle_emb: [d] 
             pos_score = bundle_emb @ feat_retrieval_view[positive_indices[idx]].transpose(0, 1)
             print(f'pos score: {pos_score}')
-            
+            # 
             break
         
 
