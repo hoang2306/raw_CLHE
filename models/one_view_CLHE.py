@@ -280,9 +280,13 @@ class CLHE(nn.Module):
         # feat_retrieval_view: [n_items, d] # all items embedding
         # bundle_feature: [bs, d] # batch bundle embedding
 
-        for bundle_emb in bundle_feature: 
+        for idx, bundle_emb in enumerate(bundle_feature): 
             print(bundle_emb.shape)
             print(bundle_emb)
+            # bundle_emb: [d] 
+            pos_score = bundle_emb @ feat_retrieval_view[positive_indices[idx]].transpose(0, 1)
+            print(f'pos score: {pos_score}')
+            
             break
         
 
