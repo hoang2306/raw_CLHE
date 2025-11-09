@@ -285,7 +285,12 @@ class CLHE(nn.Module):
             print(f'bundle emb shape: {bundle_emb.shape}')
             print(bundle_emb)
             # bundle_emb: [d] 
-            pos_item_emb = feat_retrieval_view[positive_indices[idx]]  # [d]
+            # use self.num_item to mask the padding item ? 
+            positive_index = positive_indices[idx]
+            # mask padding positive index
+            positive_index = positive_index[positive_index != self.num_item]
+
+            pos_item_emb = feat_retrieval_view[positive_index]  # [d]
             print(f'pos item emb shape: {pos_item_emb.shape}')
             pos_score = bundle_emb @ pos_item_emb.T
             print(f'pos score: {pos_score}')
