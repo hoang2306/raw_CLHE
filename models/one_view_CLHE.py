@@ -328,6 +328,8 @@ class CLHE(nn.Module):
         # cal score
         pos_score = torch.sum(bundle_feature.unsqueeze(1) * pos_emb, dim=-1)  # [bs, n_pos]
         neg_score = torch.sum(bundle_feature.unsqueeze(1) * neg_emb, dim=-1)  # [bs, n_neg]
+        print(f'neg score shape: {pos_score.shape}')
+        print(f'neg score: {neg_score}')
 
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
