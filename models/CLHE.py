@@ -281,6 +281,9 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
+        # enable 2 line below if use cosine logits:
+        bundle_feature = F.normalize(bundle_feature, dim=-1)
+        feat_retrival_view = F.normalize(feat_retrival_view, dim=-1)
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
         loss = recon_loss_function(logits, full)  # main_loss
 
@@ -339,6 +342,9 @@ class CLHE(nn.Module):
         feat_retrival_view = self.decoder(
             (idx, x, seq_x, None, None), all=True)
 
+        # enable 2 line below if use cosine logits:
+        bundle_feature = F.normalize(bundle_feature, dim=-1)
+        feat_retrival_view = F.normalize(feat_retrival_view, dim=-1)
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
         return logits
