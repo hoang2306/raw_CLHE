@@ -334,7 +334,7 @@ class CLHE(nn.Module):
         bpr = -torch.log(torch.sigmoid(diff) + 1e-8)  # [bs, n_pos]
 
         valid_mask = (
-            pos_mask.unsqueeze(-1) 
+            pos_mask
         )
         print(f'valid mask: {valid_mask}')
 
