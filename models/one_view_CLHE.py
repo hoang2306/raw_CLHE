@@ -313,12 +313,21 @@ class CLHE(nn.Module):
         return all_bpr_loss
     
     def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
+        
+        pad = torch.zeros((1, feat_retrieval_view.size(1)), device=feat_retrieval_view.device)
+        feat_with_pad = torch.cat([feat_retrieval_view, pad], dim=0)  # [num_item+1, d]
+
         # mask padding indices
         pos_mask = (positive_indices != self.num_item)
         neg_mask = (negative_indices != self.num_item)
+        
+        # pos_emb/neg_emb: included padding embeddings
+        pos_emb = feat_with_pad[positive_indices]  # [bs, n_pos, d]
+        neg_emb = feat_with_pad[negative_indices]  # [bs, n_neg, d]
 
-        positive_indices = torch.where(pos_mask, positive_indices, torch.zeros_like(positive_indices))
-        print(f'positive indices after mask: {positive_indices}')
+        # cal score
+        pos_score = torch.sum(bundle_feature.unsqueeze(1) * pos_emb, dim=-1)  # [bs, n_pos]
+        neg_score = torch.sum(bundle_feature.unsqueeze(1) * neg_emb, dim=-1)  # [bs, n_neg]
 
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
