@@ -294,7 +294,18 @@ class CLHE(nn.Module):
             print(f'pos item emb shape: {pos_item_emb.shape}')
             pos_score = bundle_emb @ pos_item_emb.T
             print(f'pos score: {pos_score}')
-            # 
+
+            negative_index = negative_indices[idx]
+            # mask padding negative index
+            negative_index = negative_index[negative_index != self.num_item]
+            neg_item_emb = feat_retrieval_view[negative_index]
+            print(f'neg item emb shape: {neg_item_emb.shape}')
+            neg_score = bundle_emb @ neg_item_emb.T
+            print(f'neg score: {neg_score}')
+
+            # compute BPR loss
+            bpr_loss = -torch.log(torch.sigmoid(pos_score - neg_score)).mean()
+            print(f'bpr loss: {bpr_loss}')
             break
         
 
