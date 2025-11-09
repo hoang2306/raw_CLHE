@@ -14,7 +14,7 @@ class BundleTrainDataset(Dataset):
         self.b_i_pairs = b_i_pairs
         self.b_i_graph = b_i_graph
         self.bundles_map = np.argwhere(self.b_i_graph.sum(axis=1) > 0)[
-            :, 0].reshape(-1)
+            :, 0].reshape(-1) # list of bundle ids 
         self.num_bundles = num_bundles
         self.num_items = self.b_i_graph.shape[1]
         self.neg_sample = neg_sample
@@ -98,7 +98,22 @@ class BundleTrainDataset(Dataset):
             seq_modify = F.pad(
                 m_indices, (0, self.len_max-len(m_indices)), value=self.num_items)
 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify
+        # self.bundle_map[index]: bundle id 
+        # full: multi-hot vector of bundle 
+
+        # get size of bundles
+        bundle_size = full.sum().item()
+
+        # sample negative items for training
+        positive_indices = torch.argwhere(full)[:, 0].tolist()
+        # convert to set for faster operation
+        positive_set = set(positive_indices)
+        negative_indices = random.sample(
+            [i for i in range(self.num_items) if i not in positive_set],
+            bundle_size
+        )
+
+        return self.bundles_map[index], full, seq_full, modify, seq_modify, torch.LongTensor(positive_indices), torch.LongTensor(negative_indices)
 
     def __len__(self):
         return len(self.bundles_map)

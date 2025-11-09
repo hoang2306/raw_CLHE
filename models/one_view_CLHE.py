@@ -276,7 +276,17 @@ class CLHE(nn.Module):
             pass
 
     def forward(self, batch):
-        idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
+        idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices = batch  # x: [bs, #items]
+
+        # debug 
+        print(f'len positive_indices: {len(positive_indices)}')
+        print(f'len negative_indices: {len(negative_indices)}')
+        print(f'positive_indices: {positive_indices}')
+        print(f'negative_indices: {negative_indices}')
+        print('end debug')
+        exit()
+
+
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
 
