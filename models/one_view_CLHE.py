@@ -275,11 +275,12 @@ class CLHE(nn.Module):
         except Exception as e:
             pass
 
-    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
+    def bpr_loss_non_vector(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
         # for each bundle: for each pos item, sample one neg item -> cal diff score -> BPR loss 
         # feat_retrieval_view: [n_items, d] # all items embedding
         # bundle_feature: [bs, d] # batch bundle embedding
 
+        all_bpr_loss = 0 
         for idx, bundle_emb in enumerate(bundle_feature): 
             bundle_emb = bundle_emb.reshape(-1, 64)
             print(f'bundle emb shape: {bundle_emb.shape}')
@@ -306,9 +307,18 @@ class CLHE(nn.Module):
             # compute BPR loss
             bpr_loss = -torch.log(torch.sigmoid(pos_score - neg_score)).mean()
             print(f'bpr loss: {bpr_loss}')
+            all_bpr_loss += bpr_loss
             break
-        
 
+        return all_bpr_loss
+    
+    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
+        # mask padding indices
+        pos_mask = (positive_indices != self.num_item)
+        neg_mask = (negative_indices != self.num_item)
+
+        positive_indices = torch.where(pos_mask, positive_indices, torch.zeros_like(positive_indices))
+        print(f'positive indices after mask: {positive_indices}')
 
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
