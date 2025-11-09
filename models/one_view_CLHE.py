@@ -328,8 +328,16 @@ class CLHE(nn.Module):
         # cal score
         pos_score = torch.sum(bundle_feature.unsqueeze(1) * pos_emb, dim=-1)  # [bs, n_pos]
         neg_score = torch.sum(bundle_feature.unsqueeze(1) * neg_emb, dim=-1)  # [bs, n_neg]
-        print(f'neg score shape: {pos_score.shape}')
+        print(f'neg score shape: {pos_score.shape}') # [256, 5] ~ [bs, 5]
         print(f'neg score: {neg_score}')
+        diff = pos_score - neg_score # [bs, 5]
+        bpr = -torch.log(torch.sigmoid(diff) + 1e-8)  # [bs, n_pos]
+
+        valid_mask = (
+            pos_mask.unsqueeze(-1) 
+        )
+        print(f'valid mask: {valid_mask}')
+
 
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
