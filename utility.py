@@ -121,7 +121,7 @@ class BundleTrainDataset(Dataset):
         positive_indices = F.pad(positive_indices, (0, self.len_max-len(positive_indices)), value=self.num_items)
         negative_indices = F.pad(negative_indices, (0, self.len_max-len(negative_indices)), value=self.num_items)
 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices
+        return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size 
 
     def __len__(self):
         return len(self.bundles_map)

@@ -275,17 +275,20 @@ class CLHE(nn.Module):
         except Exception as e:
             pass
 
+    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
+        # for each bundle: for each pos item, sample one neg item -> cal diff score -> BPR loss 
+        # feat_retrieval_view: [n_items, d] # all items embedding
+        # bundle_feature: [bs, d] # batch bundle embedding
+
+        for bundle_emb in bundle_feature: 
+            print(bundle_emb.shape)
+            print(bundle_emb)
+            break
+        
+
+
     def forward(self, batch):
-        idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices = batch  # x: [bs, #items]
-
-        # debug 
-        print(f'len positive_indices: {len(positive_indices)}')
-        print(f'len negative_indices: {len(negative_indices)}')
-        print(f'positive_indices: {positive_indices}')
-        print(f'negative_indices: {negative_indices}')
-        print('end debug')
-        exit()
-
+        idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
 
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
@@ -298,6 +301,16 @@ class CLHE(nn.Module):
         else:
             feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
+
+        # debug 
+        print(f'len positive_indices: {len(positive_indices)}')
+        print(f'len negative_indices: {len(negative_indices)}')
+        print(f'positive_indices: {positive_indices}')
+        print(f'negative_indices: {negative_indices}')
+        print('end debug')
+
+        self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
+        exit()
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
