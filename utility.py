@@ -106,8 +106,8 @@ class BundleTrainDataset(Dataset):
         # print(f'bundle size: {bundle_size}')
         # sample negative items for training
         positive_indices = torch.argwhere(full)[:, 0].tolist()
-        print(f'positive indices: {positive_indices}')
-        exit()
+        # print(f'positive indices: {positive_indices}')
+        # exit()
         # convert to set for faster operation
         positive_set = set(positive_indices)
         negative_indices = random.sample(
