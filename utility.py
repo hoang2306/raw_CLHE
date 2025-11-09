@@ -114,8 +114,11 @@ class BundleTrainDataset(Dataset):
             [i for i in range(self.num_items) if i not in positive_set],
             bundle_size
         )
+        # pad positive and negative indices to fixed length
+        positive_indices = F.pad(positive_indices, (0, bundle_size-len(positive_indices)), value=self.num_items)
+        negative_indices = F.pad(negative_indices, (0, bundle_size-len(negative_indices)), value=self.num_items)
 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify, torch.LongTensor(positive_indices), torch.LongTensor(negative_indices)
+        return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices
 
     def __len__(self):
         return len(self.bundles_map)
