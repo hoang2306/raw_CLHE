@@ -103,7 +103,7 @@ class BundleTrainDataset(Dataset):
 
         # get size of bundles
         bundle_size = full.sum().item()
-
+        print(f'bundle size: {bundle_size}')
         # sample negative items for training
         positive_indices = torch.argwhere(full)[:, 0].tolist()
         # convert to set for faster operation
