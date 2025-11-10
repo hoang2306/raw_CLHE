@@ -339,6 +339,10 @@ class CLHE(nn.Module):
             pos_mask
         )
         print(f'valid mask: {valid_mask}')
+        bpr_masked = bpr * valid_mask.float()  # [bs, n_pos]
+        print(f'bpr masked: {bpr_masked}')
+        loss = torch.sum(bpr_masked) / (valid_mask.sum().float() + 1e-8)
+        print(f'loss: {loss}')
 
 
     def forward(self, batch):
