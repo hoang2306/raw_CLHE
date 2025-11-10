@@ -312,7 +312,7 @@ class CLHE(nn.Module):
 
         return all_bpr_loss
     
-    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices):
+    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices, debug=False):
         
         pad = torch.zeros((1, feat_retrieval_view.size(1)), device=feat_retrieval_view.device)
         feat_with_pad = torch.cat([feat_retrieval_view, pad], dim=0)  # [num_item+1, d]
@@ -329,20 +329,21 @@ class CLHE(nn.Module):
         pos_score = torch.sum(bundle_feature.unsqueeze(1) * pos_emb, dim=-1)  # [bs, n_pos]
         neg_score = torch.sum(bundle_feature.unsqueeze(1) * neg_emb, dim=-1)  # [bs, n_neg]
         # print(f'neg score shape: {pos_score.shape}') # [256, 5] ~ [bs, 5]
-        print(f'neg score: {neg_score}')
-        print(f'pos score: {pos_score}')
+        # print(f'neg score: {neg_score}')
+        # print(f'pos score: {pos_score}')
         diff = pos_score - neg_score # [bs, 5]
-        print(f'diff: {diff}')
+        # print(f'diff: {diff}')
         bpr = -torch.log(torch.sigmoid(diff) + 1e-8)  # [bs, n_pos]
-        print(f'bpr: {bpr}')
+        # print(f'bpr: {bpr}')
         valid_mask = (
             pos_mask
         )
-        print(f'valid mask: {valid_mask}')
+        # print(f'valid mask: {valid_mask}')
         bpr_masked = bpr * valid_mask.float()  # [bs, n_pos]
-        print(f'bpr masked: {bpr_masked}')
+        # print(f'bpr masked: {bpr_masked}')
         loss = torch.sum(bpr_masked) / (valid_mask.sum().float() + 1e-8)
-        print(f'loss: {loss}')
+        # print(f'loss: {loss}')
+        return loss 
 
 
     def forward(self, batch):
@@ -361,18 +362,19 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # debug 
-        print(f'len positive_indices: {len(positive_indices)}')
-        print(f'len negative_indices: {len(negative_indices)}')
-        print(f'positive_indices: {positive_indices}')
-        print(f'negative_indices: {negative_indices}')
-        print('end debug')
-
-        self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
-        exit()
+        # print(f'len positive_indices: {len(positive_indices)}')
+        # print(f'len negative_indices: {len(negative_indices)}')
+        # print(f'positive_indices: {positive_indices}')
+        # print(f'negative_indices: {negative_indices}')
+        # print('end debug')
+        # bpr_loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
+        # exit()
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
-        loss = recon_loss_function(logits, full)  # main_loss
+        # loss = recon_loss_function(logits, full)  # main_loss
+
+        loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
