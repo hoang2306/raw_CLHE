@@ -113,6 +113,12 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
+        # self-gate
+        self.c_gate = nn.Linear(self.embedding_size, self.embedding_size)
+        init(self.c_gate)
+        self.t_gate = nn.Linear(self.embedding_size, self.embedding_size)
+        init(self.t_gate)
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -136,6 +142,11 @@ class HierachicalEncoder(nn.Module):
     def forward_all(self):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
+
+        # self-gate
+        # feature * sigmoid(feature W + b)
+        c_feature = c_feature * torch.sigmoid(self.c_gate(c_feature))
+        t_feature = t_feature * torch.sigmoid(self.t_gate(t_feature))
 
         mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
         features = [mm_feature_full]
