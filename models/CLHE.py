@@ -285,7 +285,7 @@ class CLHE(nn.Module):
         bundle_feature = F.normalize(bundle_feature, dim=-1)
         feat_retrival_view = F.normalize(feat_retrival_view, dim=-1)
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
-        loss = recon_loss_function(logits, full)  # main_loss
+        loss = recon_loss_function(logits, full, self.conf['temp_loss'])  # main_loss
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()

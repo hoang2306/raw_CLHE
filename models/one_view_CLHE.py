@@ -290,8 +290,11 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # compute loss >>>
+        if self.conf['use_cosine_score']:
+            feat_retrival_view = F.normalize(feat_retrival_view, dim=-1)
+            bundle_feature = F.normalize(bundle_feature, dim=-1)
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
-        loss = recon_loss_function(logits, full)  # main_loss
+        loss = recon_loss_function(logits, full, temp=self.conf['temp_loss'])  # main_loss
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
@@ -352,6 +355,10 @@ class CLHE(nn.Module):
         else:
             feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
 
+
+        if self.conf['use_cosine_score']:
+            feat_retrival_view = F.normalize(feat_retrival_view, dim=-1)
+            bundle_feature = F.normalize(bundle_feature, dim=-1)
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
         return logits
