@@ -178,9 +178,13 @@ class HierachicalEncoder(nn.Module):
         # sampled global transformers
         # self.num_item
         # self.num_samples = 10
-        memory_index = torch.randint(
-            0, self.num_item, [final_feature.size(0), self.num_samples]
-        )
+        # memory_index = torch.randint(
+        #     0, self.num_item, [final_feature.size(0), self.num_samples]
+        # )
+        memory_index = torch.stack([
+            torch.randperm(self.num_item)[:self.num_samples]
+            for _ in range(final_feature.size(0))
+        ])
         memory = final_feature[memory_index]
         memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
         h = self.z_transformer(memory, memory)
@@ -217,9 +221,13 @@ class HierachicalEncoder(nn.Module):
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
         # self.num_samples = 10
-        memory_index = torch.randint(
-            0, self.num_item, [final_feature.size(0), self.num_samples]
-        )
+        # memory_index = torch.randint(
+        #     0, self.num_item, [final_feature.size(0), self.num_samples]
+        # )
+        memory_index = torch.stack([
+            torch.randperm(self.num_item)[:self.num_samples]
+            for _ in range(final_feature.size(0))
+        ])
         memory = final_feature[memory_index]
         memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
         h = self.z_transformer(memory, memory)
