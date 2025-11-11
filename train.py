@@ -79,8 +79,8 @@ def get_cmd():
     parser.add_argument("--linear_attention", default="no", type=str, help="enable linear attention in last layer")
     
     parser.add_argument("--n_sample_trans", default=5, type=int, help="n sample for global transformers")
-    parser.add_argument("--alpha_trans", default=0.1, type=int, help="alpha for combine final feature vs trans feature")
-    
+    parser.add_argument("--alpha_trans", default=0.1, type=float, help="alpha for combine final feature vs trans feature")
+
     args = parser.parse_args()
     return args
 
