@@ -130,6 +130,8 @@ class HierachicalEncoder(nn.Module):
             ln=False,
         )
 
+        self.num_samples = self.conf['n_sample_trans']
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -175,7 +177,7 @@ class HierachicalEncoder(nn.Module):
 
         # sampled global transformers
         # self.num_item
-        self.num_samples = 10
+        # self.num_samples = 10
         memory_index = torch.randint(
             0, self.num_item, [final_feature.size(0), self.num_samples]
         )
@@ -214,7 +216,7 @@ class HierachicalEncoder(nn.Module):
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
-        self.num_samples = 10
+        # self.num_samples = 10
         memory_index = torch.randint(
             0, self.num_item, [final_feature.size(0), self.num_samples]
         )

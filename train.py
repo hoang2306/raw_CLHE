@@ -77,6 +77,9 @@ def get_cmd():
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
     parser.add_argument("--linear_attention", default="no", type=str, help="enable linear attention in last layer")
+    
+    parser.add_argument("--n_sample_trans", default=5, type=int, help="n sample for global transformers")
+    
     args = parser.parse_args()
     return args
 
