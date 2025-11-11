@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.utils import TransformerEncoder
 from models.linear_attention import LinearAttention
+from models.sampled_global_trans import Sampled_Transformer
 from collections import OrderedDict
 import os
 
@@ -116,6 +117,19 @@ class HierachicalEncoder(nn.Module):
 
         self.linear_attention = LinearAttention(d_input=self.embedding_size, d_k=self.embedding_size, device=self.device)
 
+        # sampled transformers
+        self.z_transformer = Sampled_Transformer(
+            64,
+            4,
+            64,
+            ff_units_list=[],
+            att_residual=True,
+            ff_residual=False,
+            att_h_drop_rate=0.0,
+            drop_rate=0.2,
+            ln=False,
+        )
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -155,9 +169,20 @@ class HierachicalEncoder(nn.Module):
         # multimodal fusion <<<
 
         # feed through linear attention
-        if self.conf['linear_attention'] == 'yes':
-            # TODO: 
-            final_feature = self.linear_attention(final_feature)  # [n_items, d]
+        # if self.conf['linear_attention'] == 'yes':
+        #     # TODO: 
+        #     final_feature = self.linear_attention(final_feature)  # [n_items, d]
+
+        # sampled global transformers
+        # self.num_item
+        self.num_samples = 10
+        memory_index = torch.randint(
+            0, self.num_item, [final_feature.size(0), self.num_samples]
+        )
+        memory = final_feature[memory_index]
+        memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
+        h = self.z_transformer(memory, memory)
+        final_feature = h[:, 0]
 
         return final_feature # [n_items, d]
 
@@ -189,6 +214,14 @@ class HierachicalEncoder(nn.Module):
 
         # multimodal fusion >>>
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
+        self.num_samples = 10
+        memory_index = torch.randint(
+            0, self.num_item, [final_feature.size(0), self.num_samples]
+        )
+        memory = final_feature[memory_index]
+        memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
+        h = self.z_transformer(memory, memory)
+        final_feature = h[:, 0]
 
         # final_feature = self.forward_all()
         final_feature = final_feature[seq_modify] 
