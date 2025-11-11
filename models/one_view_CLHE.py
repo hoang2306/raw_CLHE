@@ -184,7 +184,7 @@ class HierachicalEncoder(nn.Module):
         memory = final_feature[memory_index]
         memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
         h = self.z_transformer(memory, memory)
-        final_feature = h[:, 0]
+        final_feature = final_feature + self.conf['alpha_trans'] * h[:, 0]
 
         return final_feature # [n_items, d]
 
@@ -224,6 +224,7 @@ class HierachicalEncoder(nn.Module):
         memory = torch.concat([final_feature.unsqueeze(1), memory], dim=1)
         h = self.z_transformer(memory, memory)
         final_feature = h[:, 0]
+        final_feature = final_feature + self.conf['alpha_trans'] * h[:, 0]
 
         # final_feature = self.forward_all()
         final_feature = final_feature[seq_modify] 
