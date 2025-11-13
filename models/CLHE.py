@@ -113,6 +113,12 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
+        # load bundle summary emb:
+        self.bundle_sum_emb = torch.load(
+            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+        ).to(device)
+        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
