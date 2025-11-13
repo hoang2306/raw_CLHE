@@ -269,7 +269,8 @@ class CLHE(nn.Module):
         )
 
         # bundle sum alpha
-        self.bundle_sum_alpha=0.2
+        # self.bundle_sum_alpha=0.2
+        self.bundle_sum_alpha = conf['alpha_bundle_sum']
 
     def save_embedding(self, log_path):
         try:
