@@ -113,12 +113,6 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
-        # load bundle summary emb:
-        self.bundle_sum_emb = torch.load(
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
-        ).to(device)
-        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
-
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -265,6 +259,15 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
+        # load bundle summary emb:
+        self.bundle_sum_emb = torch.load(
+            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+        ).to(device)
+        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
+        self.bundle_adapter = nn.Linear(
+            self.bundle_sum_emb.shape[1], self.embedding_size
+        )
+
     def save_embedding(self, log_path):
         try:
             # print(f'log path: {log_path}') # ./save/pog/CLHE
@@ -294,6 +297,9 @@ class CLHE(nn.Module):
         else:
             feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
+
+        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        bundle_feature = bundle_feature + bundle_sum_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -352,6 +358,8 @@ class CLHE(nn.Module):
         feat_bundle_view = self.encoder(seq_x)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
+        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        bundle_feature = bundle_feature + bundle_sum_emb
 
         if self.conf['view_mode'] == 'dual_view':
             feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
