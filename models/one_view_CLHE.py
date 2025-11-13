@@ -268,6 +268,9 @@ class CLHE(nn.Module):
             self.bundle_sum_emb.shape[1], self.embedding_size
         )
 
+        # bundle sum alpha
+        self.bundle_sum_alpha=0.2
+
     def save_embedding(self, log_path):
         try:
             # print(f'log path: {log_path}') # ./save/pog/CLHE
@@ -299,7 +302,7 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_feature = bundle_feature + bundle_sum_emb
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -340,6 +343,8 @@ class CLHE(nn.Module):
         if self.bundle_cl_alpha > 0:
             feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
+            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            bundle_feature2 = bundle_feature2 + self.bundle_sum_alpha*bundle_sum_emb
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
@@ -359,7 +364,7 @@ class CLHE(nn.Module):
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_feature = bundle_feature + bundle_sum_emb
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
         if self.conf['view_mode'] == 'dual_view':
             feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
