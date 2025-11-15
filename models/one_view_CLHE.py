@@ -286,7 +286,7 @@ class CLHE(nn.Module):
         if conf['type_adapter'] == 'MLP':
             self.bundle_adapter = MLP_(
                 input_dim=self.bundle_sum_emb.shape[1], # 384 
-                hidden_dim=128,
+                hidden_dim=64,
                 output_dim=self.embedding_size,
                 dropout=0.2
             )

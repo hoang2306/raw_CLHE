@@ -78,7 +78,7 @@ def get_cmd():
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
     parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
     # type adapter
-    parser.add_argument("--type_adapter", default="linear", type=str, help="type of adapter for bundle summary emb")
+    parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
     
     args = parser.parse_args()
     return args
