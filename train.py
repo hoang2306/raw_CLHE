@@ -80,7 +80,8 @@ def get_cmd():
     parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
     # type adapter
     parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
-    
+    # path for log test metrics as .csv 
+    parser.add_argument("--log_test_csv_path", type=str, required=True, help="whether to log test metrics as csv")
     args = parser.parse_args()
     return args
 
@@ -210,8 +211,12 @@ def main():
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
                 if is_better:
-                    print(best_metrics)
-                    exit()
+                    # print(best_metrics)
+                    log_csv_test_metric(
+                        best_metrics=best_metrics, 
+                        log_path=conf["log_test_csv_path"]
+                    )
+                    # exit()
 
 
         time_train_epoch = time.time() - start_train_epoch
@@ -226,6 +231,13 @@ def main():
             print(f'stop at epoch: {epoch}')
             break
 
+def log_csv_test_metric(best_metrics, log_path):
+    test_res = best_metrics['test']
+    # convert to df
+    test_metric_table = pd.DataFrame(test_res)
+    test_metric_table_T = test_metric_table.T
+    test_metric_table_T.to_csv(log_path, index=True) # index=True: hold recall, ndcg as row index
+    print(f'saved test metrics to csv at {log_path}')
 
 def init_best_metrics(conf):
     best_metrics = {}
