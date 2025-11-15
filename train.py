@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
 import pandas as pd 
+from pathlib import Path
 import torch
 import torch.optim as optim
 from utility import Datasets
@@ -214,7 +215,8 @@ def main():
                     # print(best_metrics)
                     log_csv_test_metric(
                         best_metrics=best_metrics, 
-                        log_path=conf["log_test_csv_path"]
+                        log_path=conf["log_test_csv_path"],
+                        file_name=f'test_metric_best_epoch_{best_epoch}.csv'
                     )
                     # exit()
 
@@ -231,13 +233,18 @@ def main():
             print(f'stop at epoch: {epoch}')
             break
 
-def log_csv_test_metric(best_metrics, log_path):
+def log_csv_test_metric(best_metrics, log_path, file_name):
     test_res = best_metrics['test']
     # convert to df
     test_metric_table = pd.DataFrame(test_res)
     test_metric_table_T = test_metric_table.T
-    test_metric_table_T.to_csv(log_path, index=True) # index=True: hold recall, ndcg as row index
-    print(f'saved test metrics to csv at {log_path}')
+
+    folder_path = Path(log_path)
+    folder_path.mkdir(parents=True, exist_ok=True)
+    save_path = folder_path / file_name # concat path
+
+    test_metric_table_T.to_csv(save_path, index=True) # index=True: hold recall, ndcg as row index
+    print(f'saved test metrics to csv at {save_path}')
 
 def init_best_metrics(conf):
     best_metrics = {}
