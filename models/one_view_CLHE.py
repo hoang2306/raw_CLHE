@@ -278,15 +278,18 @@ class CLHE(nn.Module):
             os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
         ).to(device)
         print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
-        # self.bundle_adapter = nn.Linear(
-        #     self.bundle_sum_emb.shape[1], self.embedding_size
-        # )
-        self.bundle_adapter = MLP_(
-            input_dim=self.bundle_sum_emb.shape[1], # 384 
-            hidden_dim=128,
-            output_dim=self.embedding_size,
-            dropout=0.2
-        )
+
+        if conf['type_adapter'] == 'linear':
+            self.bundle_adapter = nn.Linear(
+                self.bundle_sum_emb.shape[1], self.embedding_size
+            )
+        if conf['type_adapter'] == 'MLP':
+            self.bundle_adapter = MLP_(
+                input_dim=self.bundle_sum_emb.shape[1], # 384 
+                hidden_dim=128,
+                output_dim=self.embedding_size,
+                dropout=0.2
+            )
 
         # bundle sum alpha
         # self.bundle_sum_alpha=0.2
