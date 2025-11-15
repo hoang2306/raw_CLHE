@@ -220,6 +220,20 @@ class HierachicalEncoder(nn.Module):
 
         return random_mask(), random_mask()
 
+class MLP_(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.2):
+        super(MLP_, self).__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU()
+        init(self.fc1)
+        init(self.fc2)
+
+    def forward(self, x):
+        x = self.dropout(self.activation(self.fc1(x)))
+        x = self.fc2(x)
+        return x
 
 class CLHE(nn.Module):
     def __init__(self, conf, raw_graph, features):
@@ -264,8 +278,14 @@ class CLHE(nn.Module):
             os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
         ).to(device)
         print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
-        self.bundle_adapter = nn.Linear(
-            self.bundle_sum_emb.shape[1], self.embedding_size
+        # self.bundle_adapter = nn.Linear(
+        #     self.bundle_sum_emb.shape[1], self.embedding_size
+        # )
+        self.bundle_adapter = MLP_(
+            input_dim=self.bundle_sum_emb.shape[1], # 384 
+            hidden_dim=128,
+            output_dim=self.embedding_size,
+            dropout=0.2
         )
 
         # bundle sum alpha
