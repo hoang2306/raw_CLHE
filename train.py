@@ -11,6 +11,7 @@ from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
+import pandas as pd 
 import torch
 import torch.optim as optim
 from utility import Datasets
@@ -208,6 +209,10 @@ def main():
                 metrics["test"] = test(model, dataset.test_loader, conf)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
+                if is_better:
+                    print(best_metrics)
+                    exit()
+
 
         time_train_epoch = time.time() - start_train_epoch
 
