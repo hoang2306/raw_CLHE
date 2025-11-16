@@ -190,6 +190,7 @@ def main():
             project=conf['project_name'],
             name=run_name,
             config=conf,
+            save_code=True,
             entity='hoangggp-uet-vnu'
         )
         # watch: log gradients and model parameters
@@ -199,6 +200,8 @@ def main():
 
     num_epoch = conf['epochs'] if conf['epoch'] == -1 else conf["epoch"]
     print(f'num epoch: {num_epoch}')
+
+    total_loss_history = []
     for epoch in range(num_epoch):
         start_train_epoch = time.time() # start time train epoch 
         epoch_anchor = epoch * batch_cnt
@@ -251,6 +254,14 @@ def main():
         time_train_epoch = time.time() - start_train_epoch
 
         print(f'time train epoch {epoch}: {time_train_epoch:.3f}s')
+
+        total_loss_history.append(
+            np.mean(avg_losses['loss'])
+        )
+        # log loss 
+        run_wandb.log({
+            'total_loss': total_loss_history[-1]
+        })
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
