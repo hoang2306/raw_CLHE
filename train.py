@@ -205,7 +205,7 @@ def main():
         )
         # watch: log gradients and model parameters
         # log_freq: log every n batches
-        wandb.watch(model, log="all", log_freq=100)
+        # wandb.watch(model, log="all", log_freq=100)
         
 
     num_epoch = conf['epochs'] if conf['epoch'] == -1 else conf["epoch"]
@@ -288,7 +288,7 @@ def main():
         log_path=conf["log_test_csv_path"],
         file_name=f'test_metric_final.csv'
     )
-    print('logged final test metrics to csv')
+    print('logged test_metric_final.csv')
 
     artifact_new_name = conf['wandb_run_name'].replace(" ", "_")
     # artifact name not allow space
