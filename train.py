@@ -190,7 +190,7 @@ def main():
             project=conf['project_name'],
             name=run_name,
             config=conf,
-            save_code=True,
+            # save_code=True,
             entity='hoangggp-uet-vnu'
         )
         # watch: log gradients and model parameters
@@ -239,7 +239,7 @@ def main():
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
                 
                 if conf['wandb_run_name'] != "": # if use wandb
-                    log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb)
+                    log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
                 
                 if is_better:
                     # print(best_metrics)
@@ -261,7 +261,7 @@ def main():
         # log loss 
         run_wandb.log({
             'total_loss': total_loss_history[-1]
-        })
+        }, step=epoch)
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
@@ -276,14 +276,14 @@ def main():
             )
             break
 
-def log_wandb(metrics, best_metrics, run_wandb):
+def log_wandb(metrics, best_metrics, run_wandb, step):
     for type_data in ['test', 'val']:
         for type_metric in ['recall', 'ndcg']:
             for topk in [5,10,20,40,80]:
                 run_wandb.log({
                     f'{type_data}_{type_metric}@{topk}': metrics[type_data][type_metric][topk],
                     f'best_{type_data}_{type_metric}@{topk}': best_metrics[type_data][type_metric][topk]
-                })
+                }, step=step)
 
 
 def log_csv_test_metric(best_metrics, log_path, file_name):
