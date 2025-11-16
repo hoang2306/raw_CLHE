@@ -259,7 +259,8 @@ def main():
                         file_name=f'test_metric_best_epoch_{best_epoch}.csv'
                     )
                     # upload checkpoint
-                    artifact = wandb.Artifact("best_model", type="model")
+                    # type model 
+                    artifact = wandb.Artifact(f"{conf['wandb_run_name']}_ckpt", type="model") 
                     artifact.add_file(checkpoint_model_path)
                     run_wandb.log_artifact(artifact)
                     # exit()
