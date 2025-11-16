@@ -262,7 +262,6 @@ def main():
                     artifact = wandb.Artifact("best_model", type="model")
                     artifact.add_file(checkpoint_model_path)
                     run.log_artifact(artifact)
-
                     # exit()
 
 
