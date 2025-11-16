@@ -84,11 +84,16 @@ def get_cmd():
     parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
     # path for log test metrics as .csv 
     parser.add_argument("--log_test_csv_path", type=str, required=True, help="whether to log test metrics as csv")
+    
+    # custom checkpoint model path
+    parser.add_argument("--custom_checkpoint_model_path", type=str, default="", help="custom checkpoint model path")
 
     # exp tracking (wandb)
     # parser.add_argument("--use_wandb", action='store_true', help="whether to use wandb for experiment tracking")
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
+    
+    
 
     args = parser.parse_args()
     return args
@@ -153,6 +158,11 @@ def main():
     log_path = log_path + "/" + setting
     run_path = run_path + "/" + setting
     checkpoint_model_path = checkpoint_model_path + "/" + setting
+    if conf["custom_checkpoint_model_path"] != "":
+        # create folder if not exist
+        checkpoint_model_path = Path(conf["custom_checkpoint_model_path"])
+        checkpoint_model_path.parent.mkdir(parents=True, exist_ok=True)
+
     checkpoint_conf_path = checkpoint_conf_path + "/" + setting
     save_path = save_path + "/" + setting
     if not os.path.isdir(save_path):
