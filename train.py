@@ -260,7 +260,9 @@ def main():
                     )
                     # upload checkpoint
                     # type model 
-                    artifact = wandb.Artifact(f"{conf['wandb_run_name']}_ckpt", type="model") 
+                    # artifact name not allow space
+                    artifact_new_name = conf['wandb_run_name'].replace(" ", "_")
+                    artifact = wandb.Artifact(f"{artifact_new_name}_ckpt", type="model") 
                     artifact.add_file(checkpoint_model_path)
                     run_wandb.log_artifact(artifact)
                     # exit()
