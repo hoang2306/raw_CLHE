@@ -258,13 +258,7 @@ def main():
                         log_path=conf["log_test_csv_path"],
                         file_name=f'test_metric_best_epoch_{best_epoch}.csv'
                     )
-                    # upload checkpoint
-                    # type model 
-                    # artifact name not allow space
-                    artifact_new_name = conf['wandb_run_name'].replace(" ", "_")
-                    artifact = wandb.Artifact(f"{artifact_new_name}_ckpt", type="model") 
-                    artifact.add_file(checkpoint_model_path)
-                    run_wandb.log_artifact(artifact)
+
                     # exit()
 
 
@@ -286,12 +280,30 @@ def main():
 
         if epoch - best_epoch >= conf['early_stop']:
             print(f'stop at epoch: {epoch}')
-            log_csv_test_metric(
-                best_metrics=best_metrics, 
-                log_path=conf["log_test_csv_path"],
-                file_name=f'test_metric_final.csv'
-            )
             break
+    
+    # log final results
+    log_csv_test_metric(
+        best_metrics=best_metrics, 
+        log_path=conf["log_test_csv_path"],
+        file_name=f'test_metric_final.csv'
+    )
+    print('logged final test metrics to csv')
+
+    artifact_new_name = conf['wandb_run_name'].replace(" ", "_")
+    # artifact name not allow space
+    artifact = wandb.Artifact(f"{artifact_new_name}_ckpt_results", type="model") 
+
+    # upload csv resutls to wandb
+    artifact.add_file(
+        Path(conf["log_test_csv_path"]) / f'test_metric_final.csv'
+    )
+    # upload checkpoint
+    artifact.add_file(checkpoint_model_path)
+    run_wandb.log_artifact(artifact)
+    
+    print('uploaded checkpoint and test metrics to wandb')
+    print(f'training finished! best epoch: {best_epoch}')
 
 def log_wandb(metrics, best_metrics, run_wandb, step):
     for type_data in ['test', 'val']:
