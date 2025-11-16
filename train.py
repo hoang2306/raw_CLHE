@@ -258,7 +258,11 @@ def main():
                         log_path=conf["log_test_csv_path"],
                         file_name=f'test_metric_best_epoch_{best_epoch}.csv'
                     )
-                    #
+                    # upload checkpoint
+                    artifact = wandb.Artifact("best_model", type="model")
+                    artifact.add_file(checkpoint_model_path)
+                    run.log_artifact(artifact)
+
                     # exit()
 
 
