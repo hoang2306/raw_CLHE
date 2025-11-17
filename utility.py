@@ -97,8 +97,34 @@ class BundleTrainDataset(Dataset):
             modify[m_indices] = 1
             seq_modify = F.pad(
                 m_indices, (0, self.len_max-len(m_indices)), value=self.num_items)
+            
+        # self.bundle_map[index]: bundle id 
+        # full: multi-hot vector of bundle 
 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify
+        # get size of bundles
+        bundle_size = int(full.sum().item())
+        # print(f'bundle size: {bundle_size}')
+        # sample negative items for training
+        positive_indices = torch.argwhere(full)[:, 0].tolist()
+        # print(f'positive indices: {positive_indices}')
+        # exit()
+        # convert to set for faster operation
+        positive_set = set(positive_indices)
+        negative_indices = random.sample(
+            [i for i in range(self.num_items) if i not in positive_set],
+            bundle_size
+        )
+        # convert to tensor to pad 
+        negative_indices = torch.LongTensor(negative_indices)
+        positive_indices = torch.LongTensor(positive_indices)
+        # pad positive and negative indices to fixed length
+        positive_indices = F.pad(positive_indices, (0, self.len_max-len(positive_indices)), value=self.num_items)
+        negative_indices = F.pad(negative_indices, (0, self.len_max-len(negative_indices)), value=self.num_items)
+
+        # return self.bundles_map[index], full, seq_full, modify, seq_modify # return old code 
+        # return with BPR setting 
+        return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size
+
 
     def __len__(self):
         return len(self.bundles_map)

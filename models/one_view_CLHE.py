@@ -295,6 +295,9 @@ class CLHE(nn.Module):
         # self.bundle_sum_alpha=0.2
         self.bundle_sum_alpha = conf['alpha_bundle_sum']
 
+        # BPR loss
+        self.alpha_bpr_loss = conf['alpha_bpr_loss']
+
     def save_embedding(self, log_path):
         try:
             # print(f'log path: {log_path}') # ./save/pog/CLHE
@@ -311,8 +314,46 @@ class CLHE(nn.Module):
         except Exception as e:
             pass
 
+    def bpr_loss(self, bundle_feature, feat_retrieval_view, positive_indices, negative_indices, debug=False):
+        # bundle_feature: [bs, d]
+        # feat_retrieval_view: [n_items, d]
+
+        pad = torch.zeros((1, feat_retrieval_view.size(1)), device=feat_retrieval_view.device)
+        feat_with_pad = torch.cat([feat_retrieval_view, pad], dim=0)  # [num_item+1, d]
+
+        # mask padding indices
+        pos_mask = (positive_indices != self.num_item)
+        neg_mask = (negative_indices != self.num_item)
+        
+        # pos_emb/neg_emb: included padding embeddings
+        pos_emb = feat_with_pad[positive_indices]  # [bs, n_pos, d]
+        neg_emb = feat_with_pad[negative_indices]  # [bs, n_neg, d]
+
+        # cal score
+        # bundle_feature.unsqueeze(1): [bs, 1, d]
+        # pos_emb = [bs, n_pos, d]
+        # broadcast: [bs, 1, d] * [bs, n_pos, d] -> [bs, n_pos, d]
+        # sum dim -1 -> [bs, n_pos]
+        pos_score = torch.sum(bundle_feature.unsqueeze(1) * pos_emb, dim=-1)  # [bs, n_pos]
+        neg_score = torch.sum(bundle_feature.unsqueeze(1) * neg_emb, dim=-1)  # [bs, n_neg]
+        # print(f'neg score shape: {pos_score.shape}') # [256, 5] ~ [bs, 5]
+        # print(f'neg score: {neg_score}')
+        # print(f'pos score: {pos_score}')
+        diff = pos_score - neg_score # [bs, 5]
+        # print(f'diff: {diff}')
+        bpr = -torch.log(torch.sigmoid(diff) + 1e-8)  # [bs, n_pos]
+        # print(f'bpr: {bpr}')
+        valid_mask = pos_mask & neg_mask  # [bs, n_pos]
+        # print(f'valid mask: {valid_mask}')
+        bpr_masked = bpr * valid_mask.float()  # [bs, n_pos]
+        # print(f'bpr masked: {bpr_masked}')
+        loss = torch.sum(bpr_masked) / (valid_mask.sum().float() + 1e-8) 
+        # print(f'loss: {loss}')
+        return loss 
+
+
     def forward(self, batch):
-        idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
+        idx, full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
         feat_bundle_view = self.encoder(seq_full)  # [bs, n_token, d]
 
@@ -331,6 +372,11 @@ class CLHE(nn.Module):
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
         loss = recon_loss_function(logits, full)  # main_loss
+
+        bpr_loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
+
+        # loss = loss + 0.1 * bpr_loss
+        loss = loss + self.alpha_bpr_loss * bpr_loss
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()

@@ -82,8 +82,13 @@ def get_cmd():
     parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
     # type adapter
     parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
+    
+    # BPR loss
+    parser.add_argument("--alpha_bpr_loss", default=0.1, type=float, help="hyper alpha for bpr loss")
+    
     # path for log test metrics as .csv 
     parser.add_argument("--log_test_csv_path", type=str, required=True, help="whether to log test metrics as csv")
+    
     
     # custom checkpoint model path
     parser.add_argument("--custom_checkpoint_model_path", type=str, default="", help="custom checkpoint model path")
