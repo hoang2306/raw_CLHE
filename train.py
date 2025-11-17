@@ -469,6 +469,9 @@ def get_metrics(metrics, grd, pred, topks):
         tmp["ndcg"][topk] = get_ndcg(pred, grd, is_hit, topk)
         tmp["hitrate"][topk] = get_hitrate(is_hit)
 
+        print(f'tmp: {tmp}')
+        exit()
+
     for m, topk_res in tmp.items():
         for topk, res in topk_res.items():
             for i, x in enumerate(res):
@@ -483,9 +486,9 @@ def get_hitrate(is_hit):
     hit_any = (is_hit.sum(dim=1) > 0).float()
     sum_hit = hit_any.sum().item()
 
-    print(f'nomina hit rate: {sum_hit}')
-    print(f'denorm hit rate: {batch}')
-    exit()
+    # print(f'nomina hit rate: {sum_hit}')
+    # print(f'denorm hit rate: {batch}')
+    # exit()
     return [sum_hit, batch]
 
 
