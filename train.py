@@ -362,9 +362,17 @@ def write_log(run, log_path, topk, step, metrics):
         run.add_scalar("%s_%d/Test" % (m, topk), test_score[topk], step)
 
     val_str = "%s, Top_%d, Val:  recall: %f, ndcg: %f" % (
-        curr_time, topk, val_scores["recall"][topk], val_scores["ndcg"][topk])
+        curr_time, topk, 
+        val_scores["recall"][topk], 
+        val_scores["ndcg"][topk],
+        val_scores["hitrate"][topk]
+    )
     test_str = "%s, Top_%d, Test: recall: %f, ndcg: %f" % (
-        curr_time, topk, test_scores["recall"][topk], test_scores["ndcg"][topk])
+        curr_time, topk, 
+        test_scores["recall"][topk], 
+        test_scores["ndcg"][topk],
+        test_scores["hitrate"][topk]
+    )
 
     log = open(log_path, "a")
     log.write("%s\n" % (val_str))
@@ -398,10 +406,18 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
                 for metric in res:
                     best_metrics[key][metric][topk] = metrics[key][metric][topk]
 
-            best_perform["test"][topk] = "%s, Best in epoch %d, TOP %d: REC_T=%.5f, NDCG_T=%.5f" % (
-                curr_time, best_epoch, topk, best_metrics["test"]["recall"][topk], best_metrics["test"]["ndcg"][topk])
+            best_perform["test"][topk] = "%s, Best in epoch %d, TOP %d: REC_T=%.5f, NDCG_T=%.5f, Hit_T=%.5f" % (
+                curr_time, best_epoch, topk, 
+                best_metrics["test"]["recall"][topk], # test recall
+                best_metrics["test"]["ndcg"][topk], # test ndcg
+                best_metrics["test"]["hitrate"][topk]  # test hitrate
+            )
             best_perform["val"][topk] = "%s, Best in epoch %d, TOP %d: REC_V=%.5f, NDCG_V=%.5f" % (
-                curr_time, best_epoch, topk, best_metrics["val"]["recall"][topk], best_metrics["val"]["ndcg"][topk])
+                curr_time, best_epoch, topk, 
+                best_metrics["val"]["recall"][topk], 
+                best_metrics["val"]["ndcg"][topk],
+                best_metrics["val"]["hitrate"][topk]
+            )
             print(best_perform["val"][topk])
             print(best_perform["test"][topk])
             log.write(best_perform["val"][topk] + "\n")
@@ -414,7 +430,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
 @torch.no_grad()
 def test(model, dataloader, conf):
     tmp_metrics = {}
-    for m in ["recall", "ndcg"]:
+    for m in ["recall", "ndcg", "hitrate"]:
         tmp_metrics[m] = {}
         for topk in conf["topk"]:
             tmp_metrics[m][topk] = [0, 0]
@@ -440,7 +456,7 @@ def test(model, dataloader, conf):
 
 
 def get_metrics(metrics, grd, pred, topks):
-    tmp = {"recall": {}, "ndcg": {}}
+    tmp = {"recall": {}, "ndcg": {}, "hitrate": {}}
     for topk in topks:
         _, col_indice = torch.topk(pred, topk)
         row_indice = torch.zeros_like(col_indice) + torch.arange(
@@ -449,6 +465,7 @@ def get_metrics(metrics, grd, pred, topks):
 
         tmp["recall"][topk] = get_recall(pred, grd, is_hit, topk)
         tmp["ndcg"][topk] = get_ndcg(pred, grd, is_hit, topk)
+        tmp["hitrate"][topk] = get_hitrate(is_hit)
 
     for m, topk_res in tmp.items():
         for topk, res in topk_res.items():
@@ -456,6 +473,14 @@ def get_metrics(metrics, grd, pred, topks):
                 metrics[m][topk][i] += x
 
     return metrics
+
+def get_hitrate(is_hit):
+    # is_hit: [batch_size, topk]
+    batch = is_hit.shape[0]
+
+    hit_any = (is_hit.sum(dim=1) > 0).float()
+    sum_hit = hit_any.sum().item()
+    return [sum_hit, batch]
 
 
 def get_recall(pred, grd, is_hit, topk):
