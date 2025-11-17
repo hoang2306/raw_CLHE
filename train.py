@@ -93,7 +93,13 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
-    
+    # ablation setting
+    parser.add_argument(
+        "--ablation_setting", 
+        type=str, 
+        choices=['only_text', 'only_image', 'text_image'], 
+        help="ablation setting"
+    )
 
     args = parser.parse_args()
     return args

@@ -137,7 +137,12 @@ class HierachicalEncoder(nn.Module):
         c_feature = self.c_encoder(self.content_feature)
         t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        if self.conf['ablation_setting'] == 'only_text':
+            mm_feature_full = F.normalize(t_feature)
+        if self.conf['ablation_setting'] == 'only_image':
+            mm_feature_full = F.normalize(c_feature)
+        if self.conf['ablation_setting'] == 'text_image':
+            mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
         features = [mm_feature_full]
         features.append(self.item_embeddings)
 
@@ -195,7 +200,13 @@ class HierachicalEncoder(nn.Module):
         t_feature = self.t_encoder(self.text_feature)
 
         # early-fusion
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        if self.conf['ablation_setting'] == 'only_text':
+            mm_feature_full = F.normalize(t_feature)
+        if self.conf['ablation_setting'] == 'only_image':
+            mm_feature_full = F.normalize(c_feature)
+        if self.conf['ablation_setting'] == 'text_image':
+            mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
         features = [mm_feature_full]
 
         features.append(self.item_embeddings)
