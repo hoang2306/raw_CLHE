@@ -469,8 +469,8 @@ def get_metrics(metrics, grd, pred, topks):
         tmp["ndcg"][topk] = get_ndcg(pred, grd, is_hit, topk)
         tmp["hitrate"][topk] = get_hitrate(is_hit)
 
-        print(f'tmp: {tmp}')
-        exit()
+        # print(f'tmp: {tmp}')
+        # exit()
 
     for m, topk_res in tmp.items():
         for topk, res in topk_res.items():
