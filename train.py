@@ -483,6 +483,7 @@ def get_hitrate(is_hit):
     hit_any = (is_hit.sum(dim=1) > 0).float()
     sum_hit = hit_any.sum().item()
 
+    print(f'nomina hit rate: {sum_hit}')
     print(f'denorm hit rate: {batch}')
     exit()
     return [sum_hit, batch]
