@@ -361,13 +361,13 @@ def write_log(run, log_path, topk, step, metrics):
         run.add_scalar("%s_%d/Val" % (m, topk), val_score[topk], step)
         run.add_scalar("%s_%d/Test" % (m, topk), test_score[topk], step)
 
-    val_str = "%s, Top_%d, Val:  recall: %f, ndcg: %f" % (
+    val_str = "%s, Top_%d, Val:  recall: %f, ndcg: %f, hit rate %f" % (
         curr_time, topk, 
         val_scores["recall"][topk], 
         val_scores["ndcg"][topk],
         val_scores["hitrate"][topk]
     )
-    test_str = "%s, Top_%d, Test: recall: %f, ndcg: %f" % (
+    test_str = "%s, Top_%d, Test: recall: %f, ndcg: %f, hit rate %f" % (
         curr_time, topk, 
         test_scores["recall"][topk], 
         test_scores["ndcg"][topk],
