@@ -414,7 +414,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
                 best_metrics["test"]["ndcg"][topk], # test ndcg
                 best_metrics["test"]["hitrate"][topk]  # test hitrate
             )
-            best_perform["val"][topk] = "%s, Best in epoch %d, TOP %d: REC_V=%.5f, NDCG_V=%.5f, Hit_T=%.5f" % (
+            best_perform["val"][topk] = "%s, Best in epoch %d, TOP %d: REC_V=%.5f, NDCG_V=%.5f, Hit_V=%.5f" % (
                 curr_time, best_epoch, topk, 
                 best_metrics["val"]["recall"][topk], 
                 best_metrics["val"]["ndcg"][topk],
