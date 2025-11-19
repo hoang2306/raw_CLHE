@@ -98,7 +98,9 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
-    
+    # flag for use item pretrained emb
+    parser.add_argument("--use_item_pretrained", action="store_true", help="help")
+
 
     args = parser.parse_args()
     return args
