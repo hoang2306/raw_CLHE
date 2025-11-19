@@ -76,6 +76,10 @@ def get_cmd():
 
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
+
+    # flag for use item pretrained 
+    parser.add_argument("--use_item_pretrained", action="store_true", help="help")
+
     args = parser.parse_args()
     return args
 
