@@ -304,6 +304,7 @@ class CLHE(nn.Module):
         # bundle sum alpha
         # self.bundle_sum_alpha=0.2
         self.bundle_sum_alpha = conf['alpha_bundle_sum']
+        self.bundle_image_alpha = conf['alpha_bundle_image']
 
         # BPR loss
         self.alpha_bpr_loss = conf['alpha_bpr_loss']
@@ -378,7 +379,7 @@ class CLHE(nn.Module):
 
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
         bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_sum_alpha*bundle_image_emb
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -446,7 +447,7 @@ class CLHE(nn.Module):
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
         bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_sum_alpha*bundle_image_emb
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
 
         if self.conf['view_mode'] == 'dual_view':
             feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
