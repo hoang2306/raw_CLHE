@@ -375,7 +375,8 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
+        bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_sum_alpha*bundle_image_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -442,7 +443,8 @@ class CLHE(nn.Module):
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
+        bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_sum_alpha*bundle_image_emb
 
         if self.conf['view_mode'] == 'dual_view':
             feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
