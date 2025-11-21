@@ -80,9 +80,11 @@ def get_cmd():
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
     parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
+    parser.add_argument("--alpha_bundle_image", default=0.2, type=float, help="")
     # type adapter
     parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
     
+
     # BPR loss
     parser.add_argument("--alpha_bpr_loss", default=0.1, type=float, help="hyper alpha for bpr loss")
     
