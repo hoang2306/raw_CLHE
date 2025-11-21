@@ -292,7 +292,7 @@ class CLHE(nn.Module):
             self.bundle_image_adapter = nn.Linear(
                 self.bundle_image_emb.shape[1], self.embedding_size
             )
-            )
+            
         if conf['type_adapter'] == 'MLP':
             self.bundle_adapter = MLP_(
                 input_dim=self.bundle_sum_emb.shape[1], # 384 
