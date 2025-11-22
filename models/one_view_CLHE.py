@@ -279,7 +279,8 @@ class CLHE(nn.Module):
         ).to(device)
         print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
         self.bundle_image_emb = torch.load(
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image.pt')
+            # os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image.pt') # stack image then encode by BLIP
+            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image_sum_emb.pt') # VLP then encode by sen-trans
         ).to(device)
 
         if conf['type_adapter'] == 'linear':
