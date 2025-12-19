@@ -113,12 +113,6 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
-        # load bundle summary emb:
-        self.bundle_sum_emb = torch.load(
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
-        ).to(device)
-        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
-
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -157,7 +151,7 @@ class HierachicalEncoder(nn.Module):
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
         # multimodal fusion <<<
 
-        return final_feature
+        return final_feature # [n_items, d]
 
     def forward(self, seq_modify, all=False):
         if all is True:
@@ -166,28 +160,31 @@ class HierachicalEncoder(nn.Module):
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
 
-        c_feature = self.c_encoder(self.content_feature)
-        t_feature = self.t_encoder(self.text_feature)
+        # c_feature = self.c_encoder(self.content_feature)
+        # t_feature = self.t_encoder(self.text_feature)
 
-        mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
+        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
+        # # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
 
-        features = [mm_feature]
-        bi_feature_full = self.item_embeddings
-        bi_feature = bi_feature_full[seq_modify]
-        features.append(bi_feature)
+        # features = []
+        # features.append(mm_feature_full)
+        # bi_feature_full = self.item_embeddings
+        # # bi_feature = bi_feature_full[seq_modify]
+        # features.append(bi_feature_full)
 
-        cf_feature_full = self.cf_transformation(self.cf_feature)
-        cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        cf_feature = cf_feature_full[seq_modify]
-        features.append(cf_feature)
+        # cf_feature_full = self.cf_transformation(self.cf_feature)
+        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
+        # # cf_feature = cf_feature_full[seq_modify]
+        # features.append(cf_feature_full)
 
-        features = torch.stack(features, dim=-2)  # [bs, n_token, #modality, d]
-        bs, n_token, N_modal, d = features.shape
+        # features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
 
-        # multimodal fusion >>>
-        final_feature = self.selfAttention(
-            F.normalize(features.view(-1, N_modal, d), dim=-1))
+        # # multimodal fusion >>>
+        # final_feature = self.selfAttention(F.normalize(features, dim=-1))
+
+        final_feature = self.forward_all()
+        final_feature = final_feature[seq_modify] 
+        bs, n_token, d = final_feature.shape
         final_feature = final_feature.view(bs, n_token, d)
         # multimodal fusion <<<
 
@@ -223,6 +220,20 @@ class HierachicalEncoder(nn.Module):
 
         return random_mask(), random_mask()
 
+class MLP_(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.2):
+        super(MLP_, self).__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU()
+        init(self.fc1)
+        init(self.fc2)
+
+    def forward(self, x):
+        x = self.dropout(self.activation(self.fc1(x)))
+        x = self.fc2(x)
+        return x
 
 class CLHE(nn.Module):
     def __init__(self, conf, raw_graph, features):
@@ -239,7 +250,8 @@ class CLHE(nn.Module):
 
         self.encoder = HierachicalEncoder(conf, raw_graph, features)
         # decoder has the similar structure of the encoder
-        self.decoder = HierachicalEncoder(conf, raw_graph, features)
+        if self.conf['view_mode'] == 'dual_view':
+            self.decoder = HierachicalEncoder(conf, raw_graph, features)
 
         self.bundle_encode = TransformerEncoder(conf={
             "n_layer": conf["trans_layer"],
@@ -261,19 +273,43 @@ class CLHE(nn.Module):
         elif self.item_augmentation in ["FN"]:
             self.noise_weight = conf['noise_weight']
 
-    def save_embedding(self, log_path):
-        # print(f'log path: {log_path}') # ./save/pog/CLHE
-        feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
-        feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
-        torch.save(feat_retrival_view, feat_retrival_view_path)
-        print(f'saved {feat_retrival_view_path}')
+        # load bundle summary emb:
+        self.bundle_sum_emb = torch.load(
+            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+        ).to(device)
+        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
 
-        item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
-        # get embedding from encoder
-        item_embedding = self.decoder.item_embeddings
-        torch.save(item_embedding, item_embedding_path)
-        print(f'saved {item_embedding_path}')
-        
+        if conf['type_adapter'] == 'linear':
+            self.bundle_adapter = nn.Linear(
+                self.bundle_sum_emb.shape[1], self.embedding_size
+            )
+        if conf['type_adapter'] == 'MLP':
+            self.bundle_adapter = MLP_(
+                input_dim=self.bundle_sum_emb.shape[1], # 384 
+                hidden_dim=64,
+                output_dim=self.embedding_size,
+                dropout=0.2
+            )
+
+        # bundle sum alpha
+        # self.bundle_sum_alpha=0.2
+        self.bundle_sum_alpha = conf['alpha_bundle_sum']
+
+    def save_embedding(self, log_path):
+        try:
+            # print(f'log path: {log_path}') # ./save/pog/CLHE
+            feat_retrival_view_path = os.path.join(log_path, 'item_feat_retrival_view.pt')
+            feat_retrival_view = self.decoder(None, all=True) # run forward to get emb
+            torch.save(feat_retrival_view, feat_retrival_view_path)
+            print(f'saved {feat_retrival_view_path}')
+
+            item_embedding_path = os.path.join(log_path, 'item_embedding.pt')
+            # get embedding from encoder
+            item_embedding = self.decoder.item_embeddings
+            torch.save(item_embedding, item_embedding_path)
+            print(f'saved {item_embedding_path}')
+        except Exception as e:
+            pass
 
     def forward(self, batch):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
@@ -283,8 +319,14 @@ class CLHE(nn.Module):
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
-        feat_retrival_view = self.decoder(batch, all=True)
+        if self.conf['view_mode'] == 'dual_view':
+            feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
+        else:
+            feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
+
+        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -325,12 +367,16 @@ class CLHE(nn.Module):
         if self.bundle_cl_alpha > 0:
             feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
+            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            bundle_feature2 = bundle_feature2 + self.bundle_sum_alpha*bundle_sum_emb
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
 
+        learn_loss = loss + item_loss + bundle_loss if self.conf['loss_mode'] == 'full_loss' else loss
         return {
-            'loss': loss + item_loss + bundle_loss,
+            # 'loss': loss + item_loss + bundle_loss,
+            'loss': learn_loss,
             'item_loss': item_loss.detach(),
             'bundle_loss': bundle_loss.detach()
         }
@@ -341,9 +387,13 @@ class CLHE(nn.Module):
         feat_bundle_view = self.encoder(seq_x)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
+        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
-        feat_retrival_view = self.decoder(
-            (idx, x, seq_x, None, None), all=True)
+        if self.conf['view_mode'] == 'dual_view':
+            feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
+        else:
+            feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
 
