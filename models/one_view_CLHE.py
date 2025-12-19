@@ -454,6 +454,9 @@ class CLHE(nn.Module):
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
         bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        if self.conf['type_adapter'] == 'MoE':
+            bundle_sum_emb, _ = bundle_sum_emb  # unpack output from MoE
+    
         bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
         if self.conf['view_mode'] == 'dual_view':
