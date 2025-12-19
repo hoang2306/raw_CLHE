@@ -223,6 +223,8 @@ class HierachicalEncoder(nn.Module):
 
         return random_mask(), random_mask()
 
+
+
 class MLP_(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.2):
         super(MLP_, self).__init__()
@@ -237,6 +239,51 @@ class MLP_(nn.Module):
         x = self.dropout(self.activation(self.fc1(x)))
         x = self.fc2(x)
         return x
+    
+class MoE_Layer(torch.nn.Module):
+    def __init__(self, input_dim, output_dim, num_experts, top_k=2):
+        super().__init__()
+        self.num_experts = num_experts
+        self.top_k = top_k
+        
+        self.experts = torch.nn.ModuleList([
+            torch.nn.Linear(input_dim, output_dim) for _ in range(num_experts)
+        ])
+        
+        self.gate = torch.nn.Linear(input_dim, num_experts)
+
+    def forward(self, x):
+        expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
+        
+        gate_logits = self.gate(x)
+
+        aux_loss = self._compute_load_balancing_loss(gate_logits)
+
+        topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1)
+        
+        topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
+        
+        selected_experts = expert_outputs.gather(1, topk_indices.unsqueeze(-1).expand(-1, -1, expert_outputs.size(-1)))
+        
+        topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
+        output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
+        
+        # return output, aux_loss
+        return output 
+    
+    def _compute_load_balancing_loss(self, gate_logits):
+        gates = F.softmax(gate_logits, dim=-1)  # [batch_size, num_experts]
+        
+        importance_per_expert = gates.mean(dim=0)  # [num_experts]
+
+        target_importance = torch.ones_like(importance_per_expert) / self.num_experts
+        importance_loss = F.kl_div(
+                importance_per_expert.log(),
+                target_importance,
+                reduction='sum'
+            )
+        
+        return importance_loss
 
 class CLHE(nn.Module):
     def __init__(self, conf, raw_graph, features):
@@ -297,6 +344,13 @@ class CLHE(nn.Module):
                 nn.Linear(self.bundle_sum_emb.shape[1], 128),
                 nn.ReLU(),
                 nn.Linear(128, self.embedding_size)
+            )
+        if conf['type_adapter'] == 'MoE':
+            self.bundle_adapter = MoE_Layer(
+                input_dim=self.bundle_sum_emb.shape[1], # 384 
+                output_dim=self.embedding_size,
+                num_experts=4,
+                top_k=2
             )
 
         # bundle sum alpha
