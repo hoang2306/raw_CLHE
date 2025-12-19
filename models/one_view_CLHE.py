@@ -268,8 +268,8 @@ class MoE_Layer(torch.nn.Module):
         topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
         output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
         
-        # return output, aux_loss
-        return output 
+        return output, aux_loss
+        # return output 
     
     def _compute_load_balancing_loss(self, gate_logits):
         gates = F.softmax(gate_logits, dim=-1)  # [batch_size, num_experts]
@@ -356,6 +356,7 @@ class CLHE(nn.Module):
         # bundle sum alpha
         # self.bundle_sum_alpha=0.2
         self.bundle_sum_alpha = conf['alpha_bundle_sum']
+        self.alpha_balance_loss = conf['alpha_balance_loss']
 
     def save_embedding(self, log_path):
         try:
@@ -387,7 +388,10 @@ class CLHE(nn.Module):
             feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
 
-        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        if self.conf['type_adapter'] == 'MoE':
+            bundle_sum_emb, balance_loss = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        else:
+            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
         bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
 
         # compute loss >>>
@@ -435,7 +439,7 @@ class CLHE(nn.Module):
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
 
-        learn_loss = loss + item_loss + bundle_loss if self.conf['loss_mode'] == 'full_loss' else loss
+        learn_loss = loss + item_loss + bundle_loss + self.alpha_balance_loss*balance_loss if self.conf['loss_mode'] == 'full_loss' else loss
         return {
             # 'loss': loss + item_loss + bundle_loss,
             'loss': learn_loss,

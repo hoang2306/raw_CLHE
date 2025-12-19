@@ -80,6 +80,7 @@ def get_cmd():
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
     parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
+    parser.add_argument("--alpha_balance_loss", default=0.1, type=float, help="")
     # type adapter
     parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear', 'MoE'], type=str, help="type of adapter for bundle summary emb")
     # path for log test metrics as .csv 
