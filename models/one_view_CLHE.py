@@ -267,6 +267,9 @@ class MoE_Layer(torch.nn.Module):
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
         
         gate_logits = self.gate(x)
+        # add noise to gate logits for exploration
+        noise = torch.randn_like(gate_logits) * 1e-2 
+        gate_logits = gate_logits + noise
 
         aux_loss = self._compute_load_balancing_loss(gate_logits)
 
@@ -292,7 +295,7 @@ class MoE_Layer(torch.nn.Module):
                 importance_per_expert.log(),
                 target_importance,
                 reduction='sum'
-            )
+        )
         
         return importance_loss
 
