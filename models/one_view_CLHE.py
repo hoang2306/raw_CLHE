@@ -284,11 +284,16 @@ class CLHE(nn.Module):
                 self.bundle_sum_emb.shape[1], self.embedding_size
             )
         if conf['type_adapter'] == 'MLP':
-            self.bundle_adapter = MLP_(
-                input_dim=self.bundle_sum_emb.shape[1], # 384 
-                hidden_dim=64,
-                output_dim=self.embedding_size,
-                dropout=0.2
+            # self.bundle_adapter = MLP_(
+            #     input_dim=self.bundle_sum_emb.shape[1], # 384 
+            #     hidden_dim=64,
+            #     output_dim=self.embedding_size,
+            #     dropout=0.2
+            # )
+            self.bundle_adapter = nn.Sequential(
+                nn.Linear(self.bundle_sum_emb.shape[1], 128),
+                nn.ReLU(),
+                nn.Linear(128, self.embedding_size)
             )
 
         # bundle sum alpha
