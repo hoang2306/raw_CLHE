@@ -143,7 +143,9 @@ class HierachicalEncoder(nn.Module):
 
         cf_feature_full = self.cf_transformation(self.cf_feature)
         cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        features.append(cf_feature_full)
+        # features.append(cf_feature_full)
+        if self.conf['use_item_pretrained']:
+            features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
 
@@ -202,7 +204,8 @@ class HierachicalEncoder(nn.Module):
 
         cf_feature_full = self.cf_transformation(self.cf_feature)
         cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        features.append(cf_feature_full)
+        if self.conf['use_item_pretrained']:
+            features.append(cf_feature_full)
 
         features = torch.stack(features, dim=-2)  # [bs, #modality, d]
         size = features.shape[:2]  # (bs, #modality)
