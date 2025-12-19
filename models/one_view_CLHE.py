@@ -382,11 +382,12 @@ class CLHE(nn.Module):
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
         loss = recon_loss_function(logits, full)  # main_loss
 
-        bpr_loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
+        # bpr_loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
 
         # loss = loss + 0.1 * bpr_loss
-        loss = loss + self.alpha_bpr_loss * bpr_loss
-
+        # loss = loss + self.alpha_bpr_loss * bpr_loss
+        
+    
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
         item_loss = torch.tensor(0).to(self.device)
