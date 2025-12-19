@@ -304,7 +304,7 @@ class CLHE(nn.Module):
         self.bundle_sum_alpha = conf['alpha_bundle_sum']
 
         # BPR loss
-        self.alpha_bpr_loss = conf['alpha_bpr_loss']
+        # self.alpha_bpr_loss = conf['alpha_bpr_loss']
 
     def save_embedding(self, log_path):
         try:
