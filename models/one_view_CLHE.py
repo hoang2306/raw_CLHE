@@ -268,7 +268,10 @@ class MoE_Layer(torch.nn.Module):
         
         gate_logits = self.gate(x)
         # add noise to gate logits for exploration
-        noise = torch.randn_like(gate_logits) * 1e-1
+        # 1e-1: good
+
+        # noise = torch.randn_like(gate_logits) * 1e-1
+        noise = torch.randn_like(gate_logits)
         gate_logits = gate_logits + noise
 
         aux_loss = self._compute_load_balancing_loss(gate_logits)
