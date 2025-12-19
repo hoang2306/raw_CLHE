@@ -245,9 +245,19 @@ class MoE_Layer(torch.nn.Module):
         super().__init__()
         self.num_experts = num_experts
         self.top_k = top_k
-        
+
+        """
+        nn.Linear(self.bundle_sum_emb.shape[1], 128),
+        nn.ReLU(),
+        nn.Linear(128, self.embedding_size)
+        """
         self.experts = torch.nn.ModuleList([
-            torch.nn.Linear(input_dim, output_dim) for _ in range(num_experts)
+            nn.Sequential(
+                nn.Linear(input_dim, 128),
+                nn.ReLU(),
+                nn.Linear(128, output_dim)
+            )
+            for _ in range(num_experts)
         ])
         
         self.gate = torch.nn.Linear(input_dim, num_experts)
