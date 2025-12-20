@@ -245,6 +245,8 @@ class MoE_Layer(torch.nn.Module):
         self.num_experts = num_experts
         self.top_k = top_k
 
+        assert top_k <= num_experts, "top_k must be less than or equal to num_experts"
+
         """
         nn.Linear(self.bundle_sum_emb.shape[1], 128),
         nn.ReLU(),
@@ -260,23 +262,39 @@ class MoE_Layer(torch.nn.Module):
             for _ in range(num_experts)
         ])
         
-        self.gate = torch.nn.Linear(input_dim, num_experts)
+        self.w_gate = nn.Parameter(
+            torch.zeros(input_dim, num_experts), requires_grad=True
+        )
+        self.w_noise = nn.Parameter(
+            torch.zeros(input_dim, num_experts), requires_grad=True 
+        )
         self.alpha_noise = alpha_noise
 
-    def forward(self, x):
+        self.softplus = nn.Softplus()
+
+    def forward(self, x, noise_epsilon=1e-2):
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
         
-        gate_logits = self.gate(x)
+        # gate_logits = self.gate(x)
         # add noise to gate logits for exploration
         # 1e-1: good
 
-        noise = torch.randn_like(gate_logits) * self.alpha_noise
+        # noise = torch.randn_like(gate_logits) * self.alpha_noise
         # noise = torch.randn_like(gate_logits)
-        gate_logits = gate_logits + noise
+        # gate_logits = gate_logits + noise
 
-        aux_loss = self._compute_load_balancing_loss(gate_logits)
+        clean_logits = x @ self.w_gate
+        if self.training:
+            raw_noise_std = x @ self.w_noise
+            noise_std = self.softplus(raw_noise_std) + noise_epsilon
+            noisy_logits = clean_logits + torch.randn_like(clean_logits) * noise_std
+            logits = noisy_logits
+        else:
+            logits = clean_logits
 
-        topk_logits, topk_indices = torch.topk(gate_logits, self.top_k, dim=1)
+        aux_loss = self._compute_load_balancing_loss(logits)
+
+        topk_logits, topk_indices = torch.topk(logits, self.top_k, dim=1)
         
         topk_weights = F.softmax(topk_logits, dim=1)  # [batch_size, top_k]
         
