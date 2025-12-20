@@ -240,7 +240,7 @@ class MLP_(nn.Module):
         return x
     
 class MoE_Layer(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, num_experts, top_k=2):
+    def __init__(self, input_dim, output_dim, num_experts, top_k=2, alpha_noise=0.1):
         super().__init__()
         self.num_experts = num_experts
         self.top_k = top_k
@@ -261,6 +261,7 @@ class MoE_Layer(torch.nn.Module):
         ])
         
         self.gate = torch.nn.Linear(input_dim, num_experts)
+        self.alpha_noise = alpha_noise
 
     def forward(self, x):
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
@@ -269,7 +270,7 @@ class MoE_Layer(torch.nn.Module):
         # add noise to gate logits for exploration
         # 1e-1: good
 
-        noise = torch.randn_like(gate_logits) * 1e-1
+        noise = torch.randn_like(gate_logits) * self.alpha_noise
         # noise = torch.randn_like(gate_logits)
         gate_logits = gate_logits + noise
 
@@ -366,7 +367,8 @@ class CLHE(nn.Module):
                 input_dim=self.bundle_sum_emb.shape[1], # 384 
                 output_dim=self.embedding_size,
                 num_experts=4,
-                top_k=2
+                top_k=2,
+                alpha_noise=conf['alpha_noise_moe']
             )
 
         # bundle sum alpha
