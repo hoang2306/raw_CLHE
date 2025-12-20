@@ -318,8 +318,8 @@ class MoE_Layer(torch.nn.Module):
         topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
         output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
         
-        return output, aux_loss
-        # return output 
+        # return output, aux_loss
+        return output 
     
     def _compute_load_balancing_loss(self, gate_logits):
         gates = F.softmax(gate_logits, dim=-1)  # [batch_size, num_experts]
@@ -440,7 +440,9 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         if self.conf['type_adapter'] == 'MoE':
-            bundle_sum_emb, balance_loss = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            # bundle_sum_emb, balance_loss = self.bundle_adapter(self.bundle_sum_emb[idx])
+            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            balance_loss = 0
         else:
             bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
         bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
