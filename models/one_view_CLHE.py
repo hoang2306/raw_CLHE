@@ -84,14 +84,16 @@ class HierachicalEncoder(nn.Module):
             output_dim=self.embedding_size,
             num_experts=4,
             top_k=2,
-            alpha_noise=conf['alpha_noise_moe']
+            alpha_noise=conf['alpha_noise_moe'],
+            return_aux_loss=False
         )
         self.t_encoder = MoE_Layer(
             input_dim=self.text_feature.shape[1],
             output_dim=self.embedding_size,
             num_experts=4,
             top_k=2,
-            alpha_noise=conf['alpha_noise_moe']
+            alpha_noise=conf['alpha_noise_moe'],
+            return_aux_loss=False
         )
 
         self.multimodal_feature_dim = self.embedding_size
@@ -255,10 +257,11 @@ class MLP_(nn.Module):
         return x
     
 class MoE_Layer(torch.nn.Module):
-    def __init__(self, input_dim, output_dim, num_experts, top_k=2, alpha_noise=0.1):
+    def __init__(self, input_dim, output_dim, num_experts, top_k=2, alpha_noise=0.1, return_aux_loss=True):
         super().__init__()
         self.num_experts = num_experts
         self.top_k = top_k
+        self.return_aux_loss = return_aux_loss
 
         assert top_k <= num_experts, "top_k must be less than or equal to num_experts"
 
@@ -318,8 +321,10 @@ class MoE_Layer(torch.nn.Module):
         topk_weights = topk_weights.unsqueeze(-1)  # [batch_size, top_k, 1]
         output = torch.sum(topk_weights * selected_experts, dim=1)  # [batch_size, output_dim]
         
-        # return output, aux_loss
-        return output 
+        if self.return_aux_loss:
+            return output, aux_loss
+        else:
+            return output 
     
     def _compute_load_balancing_loss(self, gate_logits):
         gates = F.softmax(gate_logits, dim=-1)  # [batch_size, num_experts]
@@ -440,9 +445,9 @@ class CLHE(nn.Module):
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         if self.conf['type_adapter'] == 'MoE':
-            # bundle_sum_emb, balance_loss = self.bundle_adapter(self.bundle_sum_emb[idx])
-            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-            balance_loss = 0
+            bundle_sum_emb, balance_loss = self.bundle_adapter(self.bundle_sum_emb[idx])
+            # bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            # balance_loss = 0
         else:
             bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
         bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
