@@ -224,7 +224,6 @@ class HierachicalEncoder(nn.Module):
         return random_mask(), random_mask()
 
 
-
 class MLP_(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.2):
         super(MLP_, self).__init__()
@@ -252,12 +251,12 @@ class MoE_Layer(torch.nn.Module):
         nn.Linear(128, self.embedding_size)
         """
         self.experts = torch.nn.ModuleList([
-            # nn.Sequential(
-            #     nn.Linear(input_dim, 128),
-            #     nn.ReLU(),
-            #     nn.Linear(128, output_dim)
-            # )
-            nn.Linear(input_dim, output_dim)
+            nn.Sequential(
+                nn.Linear(input_dim, 128),
+                nn.ReLU(),
+                nn.Linear(128, output_dim)
+            )
+            # nn.Linear(input_dim, output_dim)
             for _ in range(num_experts)
         ])
         
