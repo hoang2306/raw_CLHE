@@ -380,7 +380,8 @@ class CLHE(nn.Module):
 
         # load bundle summary emb:
         self.bundle_sum_emb = torch.load(
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+            # os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+            conf['bundle_sum_emb_path']
         ).to(device)
         print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
 
