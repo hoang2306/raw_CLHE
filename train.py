@@ -30,9 +30,9 @@ def setup_seed(seed=2023, tf32_enabled=False):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.allow_tf32 = tf32_enabled
-    if hasattr(torch.backends, 'cublas'):
-        torch.backends.cublas.allow_tf32 = tf32_enabled
-    torch.use_deterministic_algorithms(True, warn_only=True)
+    # if hasattr(torch.backends, 'cublas'):
+    #     torch.backends.cublas.allow_tf32 = tf32_enabled
+    # torch.use_deterministic_algorithms(True, warn_only=True)
 
 
 def get_cmd():
