@@ -76,17 +76,16 @@ def get_cmd():
 
     # early stopping
     parser.add_argument("--early_stop", default=10, type=int, help="")
-
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
-    parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
-    parser.add_argument("--alpha_bundle_image", default=0.2, type=float, help="")
+    # parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
+    # parser.add_argument("--alpha_bundle_image", default=0.2, type=float, help="")
     # type adapter
-    parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
+    # parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
     
 
     # BPR loss
-    parser.add_argument("--alpha_bpr_loss", default=0.1, type=float, help="hyper alpha for bpr loss")
+    # parser.add_argument("--alpha_bpr_loss", default=0.1, type=float, help="hyper alpha for bpr loss")
     
     # path for log test metrics as .csv 
     parser.add_argument("--log_test_csv_path", type=str, required=True, help="whether to log test metrics as csv")
@@ -100,7 +99,9 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
-    
+    # iui gnn graph 
+    parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
+    parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")
 
     args = parser.parse_args()
     return args
