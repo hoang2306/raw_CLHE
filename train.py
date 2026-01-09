@@ -11,10 +11,13 @@ from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter
 import random
 import numpy as np
+import pandas as pd 
+from pathlib import Path
 import torch
 import torch.optim as optim
 from utility import Datasets
 import models
+import wandb 
 
 
 def setup_seed(seed=2023):
@@ -76,12 +79,28 @@ def get_cmd():
 
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
+    parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
+    parser.add_argument("--alpha_bundle_image", default=0.2, type=float, help="")
+    # type adapter
+    parser.add_argument("--type_adapter", default="linear", choices=['MLP', 'linear'], type=str, help="type of adapter for bundle summary emb")
+    
 
-    # extend module 
+    # BPR loss
+    parser.add_argument("--alpha_bpr_loss", default=0.1, type=float, help="hyper alpha for bpr loss")
+    
+    # path for log test metrics as .csv 
+    parser.add_argument("--log_test_csv_path", type=str, required=True, help="whether to log test metrics as csv")
+    
+    
+    # custom checkpoint model path
+    parser.add_argument("--custom_checkpoint_model_path", type=str, default="", help="custom checkpoint model path")
 
-    # iui gnn 
-    parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
-    parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")
+    # exp tracking (wandb)
+    # parser.add_argument("--use_wandb", action='store_true', help="whether to use wandb for experiment tracking")
+    parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
+    parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
+    
+    
 
     args = parser.parse_args()
     return args
@@ -146,6 +165,11 @@ def main():
     log_path = log_path + "/" + setting
     run_path = run_path + "/" + setting
     checkpoint_model_path = checkpoint_model_path + "/" + setting
+    if conf["custom_checkpoint_model_path"] != "":
+        # create folder if not exist
+        checkpoint_model_path = Path(conf["custom_checkpoint_model_path"])
+        checkpoint_model_path.parent.mkdir(parents=True, exist_ok=True)
+
     checkpoint_conf_path = checkpoint_conf_path + "/" + setting
     save_path = save_path + "/" + setting
     if not os.path.isdir(save_path):
@@ -175,7 +199,26 @@ def main():
     best_metrics, best_perform = init_best_metrics(conf)
     best_epoch = 0
     setup_seed(conf["seed"])
+
+    # set up wandb 
+    if conf['wandb_run_name'] != "":
+        run_name = f"{conf['dataset']}_{conf['wandb_run_name']}"
+        run_wandb = wandb.init(
+            project=conf['project_name'],
+            name=run_name,
+            config=conf,
+            # save_code=True,
+            entity='hoangggp-uet-vnu'
+        )
+        # watch: log gradients and model parameters
+        # log_freq: log every n batches
+        # wandb.watch(model, log="all", log_freq=100)
+        
+
     num_epoch = conf['epochs'] if conf['epoch'] == -1 else conf["epoch"]
+    print(f'num epoch: {num_epoch}')
+
+    total_loss_history = []
     for epoch in range(num_epoch):
         start_train_epoch = time.time() # start time train epoch 
         epoch_anchor = epoch * batch_cnt
@@ -211,10 +254,32 @@ def main():
                 metrics["test"] = test(model, dataset.test_loader, conf)
                 best_metrics, best_perform, best_epoch, is_better = log_metrics(
                     conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
+                
+                if conf['wandb_run_name'] != "": # if use wandb
+                    log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
+                
+                if is_better:
+                    # print(best_metrics)
+                    log_csv_test_metric(
+                        best_metrics=best_metrics, 
+                        log_path=conf["log_test_csv_path"],
+                        file_name=f'test_metric_best_epoch_{best_epoch}.csv'
+                    )
+
+                    # exit()
+
 
         time_train_epoch = time.time() - start_train_epoch
 
         print(f'time train epoch {epoch}: {time_train_epoch:.3f}s')
+
+        total_loss_history.append(
+            np.mean(avg_losses['loss'])
+        )
+        # log loss 
+        run_wandb.log({
+            'total_loss': total_loss_history[-1]
+        }, step=epoch)
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
@@ -223,7 +288,52 @@ def main():
         if epoch - best_epoch >= conf['early_stop']:
             print(f'stop at epoch: {epoch}')
             break
+    
+    # log final results
+    log_csv_test_metric(
+        best_metrics=best_metrics, 
+        log_path=conf["log_test_csv_path"],
+        file_name=f'test_metric_final.csv'
+    )
+    print('logged test_metric_final.csv')
 
+    artifact_new_name = conf['wandb_run_name'].replace(" ", "_")
+    # artifact name not allow space
+    artifact = wandb.Artifact(f"{artifact_new_name}_ckpt_results", type="model") 
+
+    # upload csv resutls to wandb
+    artifact.add_file(
+        Path(conf["log_test_csv_path"]) / f'test_metric_final.csv'
+    )
+    # upload checkpoint
+    artifact.add_file(checkpoint_model_path)
+    run_wandb.log_artifact(artifact)
+    
+    print('uploaded checkpoint and test metrics to wandb')
+    print(f'training finished! best epoch: {best_epoch}')
+
+def log_wandb(metrics, best_metrics, run_wandb, step):
+    for type_data in ['test', 'val']:
+        for type_metric in ['recall', 'ndcg']:
+            for topk in [5,10,20,40,80]:
+                run_wandb.log({
+                    f'{type_data}_{type_metric}@{topk}': metrics[type_data][type_metric][topk],
+                    f'best_{type_data}_{type_metric}@{topk}': best_metrics[type_data][type_metric][topk]
+                }, step=step)
+
+
+def log_csv_test_metric(best_metrics, log_path, file_name):
+    test_res = best_metrics['test']
+    # convert to df
+    test_metric_table = pd.DataFrame(test_res)
+    test_metric_table_T = test_metric_table.T
+
+    folder_path = Path(log_path)
+    folder_path.mkdir(parents=True, exist_ok=True)
+    save_path = folder_path / file_name # concat path
+
+    test_metric_table_T.to_csv(save_path, index=True) # index=True: hold recall, ndcg as row index
+    print(f'saved test metrics to csv at {save_path}')
 
 def init_best_metrics(conf):
     best_metrics = {}
@@ -303,7 +413,7 @@ def log_metrics(conf, model, metrics, run, log_path, checkpoint_model_path, chec
 
     return best_metrics, best_perform, best_epoch, is_better
 
-
+@torch.no_grad()
 def test(model, dataloader, conf):
     tmp_metrics = {}
     for m in ["recall", "ndcg"]:
