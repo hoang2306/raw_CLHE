@@ -76,6 +76,13 @@ def get_cmd():
 
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
+
+    # extend module 
+
+    # iui gnn 
+    parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
+    parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")
+
     args = parser.parse_args()
     return args
 

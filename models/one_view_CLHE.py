@@ -1,10 +1,14 @@
 import numpy as np
+from collections import OrderedDict
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from models.utils import TransformerEncoder
-from collections import OrderedDict
-import os
+from models.gnn import Amatrix, AsymMatrix
+
 
 eps = 1e-9
 
@@ -113,6 +117,30 @@ class HierachicalEncoder(nn.Module):
         init(self.w_v)
         self.ln = nn.LayerNorm(self.embedding_size, elementwise_affine=False)
 
+
+        # gnn
+        if self.conf['use_iui_graph']:
+            print('use iui graph gnn module')
+            self.iui_graph_path = self.conf['iui_graph_path']
+            print(f'iui graph path: {self.iui_graph_path}')
+            self.iui_graph = torch.tensor(np.load(self.iui_graph_path, allow_pickle=True)).to(self.device)
+
+            self.iui_gnn_conv = Amatrix(
+                in_dim=64,
+                out_dim=64,
+                n_layer=1,
+                dropout=0.1,
+                heads=2, 
+                concat=False,
+                self_loop=False,
+                extra_layer=True,
+                type_gnn='light_gcn'
+            )
+            self.item_iui_gnn_emb = nn.Parameter(
+                torch.FloatTensor(self.num_item, self.embedding_size)
+            )
+            init(self.item_iui_gnn_emb)
+    
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -151,6 +179,15 @@ class HierachicalEncoder(nn.Module):
         final_feature = self.selfAttention(F.normalize(features, dim=-1))
         # multimodal fusion <<<
 
+        # run iui graph gnn
+        if self.conf['use_iui_graph']:
+            item_iui_gnn_feat = self.iui_gnn_conv(
+                self.item_iui_gnn_emb, 
+                self.iui_graph, 
+                return_attention_weights=False
+            )  # [n_items, d]
+            final_feature = final_feature + item_iui_gnn_feat
+
         return final_feature # [n_items, d]
 
     def forward(self, seq_modify, all=False):
@@ -159,28 +196,6 @@ class HierachicalEncoder(nn.Module):
 
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
-
-        # c_feature = self.c_encoder(self.content_feature)
-        # t_feature = self.t_encoder(self.text_feature)
-
-        # mm_feature_full = F.normalize(c_feature) + F.normalize(t_feature)
-        # # mm_feature = mm_feature_full[seq_modify]  # [bs, n_token, d]
-
-        # features = []
-        # features.append(mm_feature_full)
-        # bi_feature_full = self.item_embeddings
-        # # bi_feature = bi_feature_full[seq_modify]
-        # features.append(bi_feature_full)
-
-        # cf_feature_full = self.cf_transformation(self.cf_feature)
-        # cf_feature_full[self.cold_indices_cf] = mm_feature_full[self.cold_indices_cf]
-        # # cf_feature = cf_feature_full[seq_modify]
-        # features.append(cf_feature_full)
-
-        # features = torch.stack(features, dim=-2)  # [n_item, #modality, d]
-
-        # # multimodal fusion >>>
-        # final_feature = self.selfAttention(F.normalize(features, dim=-1))
 
         final_feature = self.forward_all()
         final_feature = final_feature[seq_modify] 
