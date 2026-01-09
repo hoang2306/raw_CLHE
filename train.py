@@ -20,7 +20,7 @@ import models
 import wandb 
 
 
-def setup_seed(seed=2023):
+def setup_seed(seed=2023, tf32_enabled=False):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
@@ -29,6 +29,10 @@ def setup_seed(seed=2023):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.allow_tf32 = tf32_enabled
+    if hasattr(torch.backends, 'cublas'):
+        torch.backends.cublas.allow_tf32 = tf32_enabled
+    torch.use_deterministic_algorithms(True, warn_only=True)
 
 
 def get_cmd():
