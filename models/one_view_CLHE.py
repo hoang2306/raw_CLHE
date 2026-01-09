@@ -181,10 +181,10 @@ class HierachicalEncoder(nn.Module):
 
         # run iui graph gnn
         if self.conf['use_iui_graph']:
-            item_iui_gnn_feat = self.iui_gnn_conv(
+            item_iui_gnn_feat, _ = self.iui_gnn_conv(
                 self.item_iui_gnn_emb, 
                 self.iui_graph, 
-                return_attention_weights=False
+                return_attention_weights=True 
             )  # [n_items, d]
             final_feature = final_feature + item_iui_gnn_feat
 
