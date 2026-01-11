@@ -365,7 +365,7 @@ class CLHE(nn.Module):
                 item_loss = self.cl_alpha * cl_loss_function(
                     item_features.view(-1, self.embedding_size), item_features.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "FN":
-                item_features = self.encoder(batch, all=True)[items_in_batch]
+                item_features, _ = self.encoder(batch, all=True)[items_in_batch]
                 sub1 = self.cl_projector(
                     self.noise_weight * torch.randn_like(item_features) + item_features)
                 sub2 = self.cl_projector(
@@ -383,7 +383,7 @@ class CLHE(nn.Module):
         # bundle-level contrastive learning >>>
         bundle_loss = torch.tensor(0).to(self.device)
         if self.bundle_cl_alpha > 0:
-            feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
+            feat_bundle_view2, _ = self.encoder(seq_modify)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
