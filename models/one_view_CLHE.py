@@ -365,7 +365,8 @@ class CLHE(nn.Module):
                 item_loss = self.cl_alpha * cl_loss_function(
                     item_features.view(-1, self.embedding_size), item_features.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "FN":
-                item_features, _ = self.encoder(batch, all=True)[items_in_batch]
+                item_features, _ = self.encoder(batch, all=True)
+                item_features = item_features[items_in_batch]
                 sub1 = self.cl_projector(
                     self.noise_weight * torch.randn_like(item_features) + item_features)
                 sub2 = self.cl_projector(
