@@ -103,6 +103,9 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
+    # use item pretrained emb flag
+    parser.add_argument("--use_item_pretrained_emb", action='store_true', help="whether to use item pretrained emb")
+
     # iui gnn graph 
     parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
     parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")

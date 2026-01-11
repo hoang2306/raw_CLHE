@@ -14,7 +14,6 @@ def to_tensor(graph):
         indices), torch.FloatTensor(values), torch.Size(graph.shape))
     return graph
 
-
 class SublayerConnection(nn.Module):
     def __init__(self, conf):
         super().__init__()
