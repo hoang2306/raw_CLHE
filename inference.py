@@ -241,8 +241,8 @@ def main():
     metrics["test"] = test(model, dataset.test_loader, conf)
     time_test = time.time() - time_val - start_time
     
-    print(f'val time: {time_val}')
-    print(f'test time: {time_test}')
+    print(f'val time: {time_val:.4f} seconds')
+    print(f'test time: {time_test:.4f} seconds')
     for topk in conf["topk"]:
         write_log(
             run=run,
@@ -251,6 +251,7 @@ def main():
             step=0,
             metrics=metrics
         )
+    print("evaluation done!")
     
 
 def log_wandb(metrics, best_metrics, run_wandb, step):
