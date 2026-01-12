@@ -178,11 +178,11 @@ class Datasets():
 
         # change num_workers to 4 for kaggle running
         self.train_loader = DataLoader(
-            self.bundle_train_data, batch_size=batch_size_train, shuffle=True, num_workers=4)
+            self.bundle_train_data, batch_size=batch_size_train, shuffle=True, num_workers=conf['num_workers'])
         self.val_loader = DataLoader(
-            self.bundle_val_data, batch_size=batch_size_test, shuffle=False, num_workers=4)
+            self.bundle_val_data, batch_size=batch_size_test, shuffle=False, num_workers=conf['num_workers'])
         self.test_loader = DataLoader(
-            self.bundle_test_data, batch_size=batch_size_test, shuffle=False, num_workers=4)
+            self.bundle_test_data, batch_size=batch_size_test, shuffle=False, num_workers=conf['num_workers'])
 
     def combine_graph(self, pairs_list, shape, tag):
         pairs = np.concatenate(pairs_list, axis=0)
