@@ -18,6 +18,7 @@ import torch.optim as optim
 from utility import Datasets
 import models
 import wandb 
+from torch_geometric.seed import seed_everything
 
 
 def setup_seed(seed=2023, tf32_enabled=False):
@@ -38,6 +39,9 @@ def setup_seed(seed=2023, tf32_enabled=False):
 
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
     torch.use_deterministic_algorithms(True, warn_only=False)
+
+    # torch_geometric seed
+    seed_everything(seed)
 
 
 
