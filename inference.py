@@ -179,10 +179,10 @@ def main():
     log_path = log_path + "/" + setting
     run_path = run_path + "/" + setting
     checkpoint_model_path = checkpoint_model_path + "/" + setting
-    if conf["custom_checkpoint_model_path"] != "":
-        # create folder if not exist
-        checkpoint_model_path = Path(conf["custom_checkpoint_model_path"])
-        checkpoint_model_path.parent.mkdir(parents=True, exist_ok=True)
+    # if conf["custom_checkpoint_model_path"] != "":
+    #     # create folder if not exist
+    #     checkpoint_model_path = Path(conf["custom_checkpoint_model_path"])
+    #     checkpoint_model_path.parent.mkdir(parents=True, exist_ok=True)
 
     checkpoint_conf_path = checkpoint_conf_path + "/" + setting
     save_path = save_path + "/" + setting
