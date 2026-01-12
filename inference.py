@@ -248,7 +248,7 @@ def main():
             run=run,
             log_path=log_path,
             topk=topk,
-            batch_anchor=0,
+            step=0,
             metrics=metrics
         )
     
