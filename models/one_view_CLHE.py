@@ -191,23 +191,25 @@ class HierachicalEncoder(nn.Module):
             self.iui_graph = np.load(self.iui_graph_path, allow_pickle=True)
             # self.iui_graph = torch.tensor(self.iui_graph).to(self.device)
 
-            # self.iui_gnn_conv = Amatrix(
-            #     in_dim=64,
-            #     out_dim=64,
-            #     n_layer=1,
-            #     dropout=0.1,
-            #     heads=2, 
-            #     concat=False,
-            #     self_loop=False,
-            #     extra_layer=True,
-            #     # type_gnn='light_gcn'
-            #     type_gnn=self.conf['iui_gnn_type']
-            # )
-            self.iui_gnn_conv = LightGCN(
-                conf=self.conf,
-                graph=self.iui_graph.T,
-                n_layers=1
-            )
+            if self.conf['type_gnn_implement'] == 'torch_geometric':
+                self.iui_gnn_conv = Amatrix(
+                    in_dim=64,
+                    out_dim=64,
+                    n_layer=1,
+                    dropout=0.1,
+                    heads=2, 
+                    concat=False,
+                    self_loop=False,
+                    extra_layer=True,
+                    # type_gnn='light_gcn'
+                    type_gnn=self.conf['iui_gnn_type']
+                )
+            if self.conf['type_gnn_implement'] == 'self_implement':
+                self.iui_gnn_conv = LightGCN(
+                    conf=self.conf,
+                    graph=self.iui_graph.T,
+                    n_layers=1
+                )
             self.item_iui_gnn_emb = nn.Parameter(
                 torch.FloatTensor(self.num_item, self.embedding_size)
             )
@@ -303,6 +305,7 @@ class HierachicalEncoder(nn.Module):
         if self.conf['use_iui_graph']:
             return final_feature, bundle_iui_gnn_feat
         return final_feature, final_feature
+    
 
     def generate_two_subs(self, dropout_ratio=0):
         c_feature = self.c_encoder(self.content_feature)
