@@ -93,7 +93,7 @@ class LightGCN(nn.Module):
 
         all_features = torch.stack(all_features, dim=1)
         # print(all_features.shape)
-        all_features = torch.sum(all_features, dim=1)
+        all_features = torch.mean(all_features, dim=1)
         # print(all_features.shape)
 
         a_feature, b_feature = torch.split(all_features, (a_feature.shape[0], b_feature.shape[0]), 0)
