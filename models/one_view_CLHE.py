@@ -269,15 +269,17 @@ class HierachicalEncoder(nn.Module):
 
         # run iui graph gnn
         if self.conf['use_iui_graph']:
-            # item_iui_gnn_feat, _ = self.iui_gnn_conv(
-            #     self.item_iui_gnn_emb, 
-            #     self.iui_graph, 
-            #     return_attention_weights=True 
-            # )  # [n_items, d]
-            item_iui_gnn_feat, _ = self.iui_gnn_conv(
-                a_feature=self.item_iui_gnn_emb,
-                b_feature=self.item_iui_gnn_emb
-            )
+            if self.conf['type_gnn_implement'] == 'torch_geometric':
+                item_iui_gnn_feat, _ = self.iui_gnn_conv(
+                    self.item_iui_gnn_emb, 
+                    self.iui_graph, 
+                    return_attention_weights=True 
+                )  # [n_items, d]
+            if self.conf['type_gnn_implement'] == 'self_implement': 
+                item_iui_gnn_feat, _ = self.iui_gnn_conv(
+                    a_feature=self.item_iui_gnn_emb,
+                    b_feature=self.item_iui_gnn_emb
+                )
             # final_feature = final_feature + item_iui_gnn_feat
 
         # return final_feature # [n_items, d]
