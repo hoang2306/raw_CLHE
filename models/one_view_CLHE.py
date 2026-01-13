@@ -188,7 +188,8 @@ class HierachicalEncoder(nn.Module):
             print('use iui graph gnn module')
             self.iui_graph_path = self.conf['iui_graph_path']
             print(f'iui graph path: {self.iui_graph_path}')
-            self.iui_graph = torch.tensor(np.load(self.iui_graph_path, allow_pickle=True)).to(self.device)
+            self.iui_graph = np.load(self.iui_graph_path, allow_pickle=True)
+            # self.iui_graph = torch.tensor(self.iui_graph).to(self.device)
 
             # self.iui_gnn_conv = Amatrix(
             #     in_dim=64,
