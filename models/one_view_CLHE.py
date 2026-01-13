@@ -82,7 +82,7 @@ class LightGCN(nn.Module):
         )
         self.ii_graph = get_item_level_graph(graph=self.iui_graph_sparse, device=self.device)
 
-    def one_propagate(a_feature, b_feature, graph, n_layers=1):
+    def one_propagate(self, a_feature, b_feature, graph, n_layers=1):
         features = torch.cat([a_feature, b_feature], dim=0)
         # print(features.shape)
         all_features = [features]
