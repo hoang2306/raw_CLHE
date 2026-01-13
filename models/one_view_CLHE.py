@@ -192,6 +192,7 @@ class HierachicalEncoder(nn.Module):
             # self.iui_graph = torch.tensor(self.iui_graph).to(self.device)
 
             if self.conf['type_gnn_implement'] == 'torch_geometric':
+                self.iui_graph = torch.tensor(self.iui_graph).to(self.device)
                 self.iui_gnn_conv = Amatrix(
                     in_dim=64,
                     out_dim=64,
