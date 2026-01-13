@@ -122,7 +122,8 @@ def get_cmd():
     parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
     parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")
     parser.add_argument("--iui_gnn_type", default='light_gcn', type=str, help="the gnn type for item-item graph")
-    parser.add_argument("--type_gnn_implement", default='torch_geometric', choices=['torch_geometric', 'self_implement'],type=str, help="the number of gnn layers for item-item graph")
+    parser.add_argument("--type_gnn_implement", default='torch_geometric', choices=['torch_geometric', 'self_implement'], type=str, help="the number of gnn layers for item-item graph")
+    # parser.add_argument("--n_gnn_layers", default=3, type=int, help="the number of gnn layers for item-item graph")
 
     args = parser.parse_args()
     return args
