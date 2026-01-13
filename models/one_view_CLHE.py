@@ -215,9 +215,104 @@ class HierachicalEncoder(nn.Module):
                 torch.FloatTensor(self.num_item, self.embedding_size)
             )
             init(self.item_iui_gnn_emb)
+        
+        if self.conf['use_modality_ii_graph']:
+            self.mm_adj_weight = 0.5
+            self.knn_k = conf['knn_k']
+            self.n_layer_modal_ii_graph = conf['n_layer_modal_ii_graph']
+
+            print('use modality-level item-item graph')
+
+            self.item_modal_emb = nn.Parameter(
+                torch.FloatTensor(self.num_item, self.embedding_size)
+            )
+            init(self.item_modal_emb)
+
+            indices, image_adj = self.get_knn_adj_mat(self.content_feature)
+            indices, text_adj = self.get_knn_adj_mat(self.text_feature)
+            self.mm_adj = self.mm_adj_weight*image_adj + (1-self.mm_adj_weight)*text_adj
+            del text_adj 
+            del image_adj
+
+            mm_adj_save_path = f'./datasets/{conf["dataset"]}/mm_adj.pt'
+            if not os.path.exists(mm_adj_save_path):
+                torch.save(self.mm_adj, mm_adj_save_path)
+                print(f'saved mm_adj to {mm_adj_save_path}')
+            else:
+                print(f'mm_adj already exists at {mm_adj_save_path}')
+
+            self.ii_modal_sim_gnn = Amatrix(
+                in_dim=64,
+                out_dim=64,
+                n_layer=self.n_layer_modal_ii_graph,
+                dropout=0.1,
+                heads=2, 
+                concat=False,
+                self_loop=False,
+                extra_layer=True,
+                type_gnn=conf['iui_gnn_type']
+            )
+
 
         self.get_bundle_agg_graph_ori(self.bi_graph_seen)
+
+    def get_knn_adj_mat(self, mm_embeddings, batch_size=1024):
+        with torch.no_grad():  
+            device = self.device
+            N = mm_embeddings.size(0)
+            context_norm = mm_embeddings / mm_embeddings.norm(p=2, dim=-1, keepdim=True)
+
+            knn_indices = torch.empty((N, self.knn_k), dtype=torch.long, device=device)
+
+            for i in range(0, N, batch_size):
+                end_i = min(i + batch_size, N)
+                batch = context_norm[i:end_i]  # (B, D)
+                sim_batch = torch.matmul(batch, context_norm.transpose(0, 1))  # (B, N)
+                _, topk = torch.topk(sim_batch, self.knn_k, dim=-1)
+                knn_indices[i:end_i] = topk
+
+            adj_size = (N, N)
+
+            indices0 = torch.arange(N, device=device).unsqueeze(1).expand(-1, self.knn_k)
+            indices = torch.stack((indices0.flatten(), knn_indices.flatten()), dim=0)
+
+            return indices, self.compute_normalized_laplacian(indices, adj_size)
     
+    def get_cross_modal_knn_adj_mat(self, mm_embeddings_1, mm_embeddings_2, batch_size=1024):
+        print(f'calculating cross modal sim graph')
+        with torch.no_grad():  
+            device = self.device
+            assert mm_embeddings_1.shape[1] == mm_embeddings_2.shape[1] # equal dim
+            N = mm_embeddings_1.size(0)
+            context_norm_1 = mm_embeddings_1 / mm_embeddings_1.norm(p=2, dim=-1, keepdim=True)
+            context_norm_2 = mm_embeddings_2 / mm_embeddings_2.norm(p=2, dim=-1, keepdim=True)
+
+            knn_indices = torch.empty((N, self.knn_k), dtype=torch.long, device=device)
+
+            for i in range(0, N, batch_size):
+                end_i = min(i + batch_size, N)
+                batch = context_norm_1[i:end_i]  # (B, D)
+                sim_batch = torch.matmul(batch, context_norm_2.transpose(0, 1))  # (B, N)
+                _, topk = torch.topk(sim_batch, self.knn_k, dim=-1)
+                knn_indices[i:end_i] = topk
+
+            adj_size = (N, N)
+
+            indices0 = torch.arange(N, device=device).unsqueeze(1).expand(-1, self.knn_k)
+            indices = torch.stack((indices0.flatten(), knn_indices.flatten()), dim=0)
+
+            return indices, self.compute_normalized_laplacian(indices, adj_size)
+
+    def compute_normalized_laplacian(self, indices, adj_size):
+        # adj = torch.sparse.FloatTensor(indices, torch.ones_like(indices[0]), adj_size)
+        adj = torch.sparse_coo_tensor(indices, torch.ones_like(indices[0]), adj_size)
+        row_sum = 1e-7 + torch.sparse.sum(adj, -1).to_dense()
+        r_inv_sqrt = torch.pow(row_sum, -0.5)
+        rows_inv_sqrt = r_inv_sqrt[indices[0]]
+        cols_inv_sqrt = r_inv_sqrt[indices[1]]
+        values = rows_inv_sqrt * cols_inv_sqrt
+        return torch.sparse_coo_tensor(indices, values, adj_size)
+
     def selfAttention(self, features):
         # features: [bs, #modality, d]
         if "layernorm" in self.attention_components:
@@ -283,12 +378,21 @@ class HierachicalEncoder(nn.Module):
                 )
             # final_feature = final_feature + item_iui_gnn_feat
 
+        # run modal item-item graph
+        if self.conf['use_modality_ii_graph']:
+            item_modal_gnn_feat, _ = self.ii_modal_sim_gnn(
+                self.item_modal_emb, 
+                self.mm_adj, 
+                return_attention_weights=True 
+            )  # [n_items, d]
+            # final_feature = final_feature + item_modal_gnn_feat
+
         # return final_feature # [n_items, d]
 
-        if self.conf['use_iui_graph']:
-            return final_feature, item_iui_gnn_feat
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            return final_feature, item_iui_gnn_feat, item_modal_gnn_feat
 
-        return final_feature, final_feature
+        return final_feature, final_feature, final_feature
 
     def forward(self, seq_modify, all=False):
         # for bundle-view 
@@ -298,16 +402,18 @@ class HierachicalEncoder(nn.Module):
         modify_mask = seq_modify == self.num_item
         seq_modify.masked_fill_(modify_mask, 0)
 
-        final_feature, item_iui_gnn_feat = self.forward_all()
+        final_feature, item_iui_gnn_feat, item_modal_gnn_feat = self.forward_all()
         final_feature = final_feature[seq_modify] 
         bs, n_token, d = final_feature.shape
         final_feature = final_feature.view(bs, n_token, d)
         # multimodal fusion <<<
 
         bundle_iui_gnn_feat = self.bundle_agg_graph_ori @ item_iui_gnn_feat  # [n_bundles, d]
-        if self.conf['use_iui_graph']:
-            return final_feature, bundle_iui_gnn_feat
-        return final_feature, final_feature
+        bundle_modal_gnn_feat = self.bundle_agg_graph_ori @ item_modal_gnn_feat  # [n_bundles, d]
+
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            return final_feature, bundle_iui_gnn_feat, bundle_modal_gnn_feat
+        return final_feature, final_feature, final_feature
     
 
     def generate_two_subs(self, dropout_ratio=0):
@@ -399,32 +505,32 @@ class CLHE(nn.Module):
         idx, full, seq_full, modify, seq_modify = batch  # x: [bs, #items]
         mask = seq_full == self.num_item
 
-        if self.conf['use_iui_graph']:
-            feat_bundle_view, bundle_iui_gnn_feat = self.encoder(seq_full)  # [bs, n_token, d]
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            feat_bundle_view, bundle_iui_gnn_feat, bundle_modal_gnn_feat = self.encoder(seq_full)  # [bs, n_token, d]
         else:
-            feat_bundle_view, _ = self.encoder(seq_full)  # [bs, n_token, d]
+            feat_bundle_view, _, _ = self.encoder(seq_full)  # [bs, n_token, d]
 
         # bundle feature construction >>>
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         if self.conf['view_mode'] == 'dual_view':
             # feat_retrival_view = self.decoder(batch, all=True) # [n_items, d]
-            if self.conf['use_iui_graph']:
-                # return: final_feature, item_iui_gnn_feat
-                feat_retrival_view, item_iui_gnn_feat = self.decoder(batch, all=True) # [n_items, d]
+            if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+                # return: final_feature, item_iui_gnn_feat, item_modal_gnn_feat
+                feat_retrival_view, item_iui_gnn_feat, item_modal_gnn_feat = self.decoder(batch, all=True) # [n_items, d]
             else:
-                feat_retrival_view, _ = self.decoder(batch, all=True) # [n_items, d]
+                feat_retrival_view, _, _ = self.decoder(batch, all=True) # [n_items, d]
         else:
-            if self.conf['use_iui_graph']:
-                feat_retrival_view, item_iui_gnn_feat = self.encoder(batch, all=True) # [n_items, d]
+            if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+                feat_retrival_view, item_iui_gnn_feat, item_modal_gnn_feat = self.encoder(batch, all=True) # [n_items, d]
             else:
-                feat_retrival_view, _ = self.encoder(batch, all=True) # [n_items, d]
+                feat_retrival_view, _, _ = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
 
         # fusion
-        if self.conf['use_iui_graph']:
-            feat_retrival_view = feat_retrival_view + item_iui_gnn_feat
-            bundle_feature = bundle_feature + bundle_iui_gnn_feat[idx]
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            feat_retrival_view = feat_retrival_view + item_iui_gnn_feat + item_modal_gnn_feat
+            bundle_feature = bundle_feature + bundle_iui_gnn_feat[idx] + bundle_modal_gnn_feat[idx]
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -445,7 +551,7 @@ class CLHE(nn.Module):
                 item_loss = self.cl_alpha * cl_loss_function(
                     item_features.view(-1, self.embedding_size), item_features.view(-1, self.embedding_size), self.cl_temp)
             elif self.item_augmentation == "FN":
-                item_features, _ = self.encoder(batch, all=True)
+                item_features, _, _ = self.encoder(batch, all=True)
                 item_features = item_features[items_in_batch]
                 sub1 = self.cl_projector(
                     self.noise_weight * torch.randn_like(item_features) + item_features)
@@ -483,30 +589,30 @@ class CLHE(nn.Module):
         mask = seq_x == self.num_item
         # feat_bundle_view = self.encoder(seq_x)
 
-        if self.conf['use_iui_graph']:
-            feat_bundle_view, bundle_iui_gnn_feat = self.encoder(seq_x)  # [bs, n_token, d]
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            feat_bundle_view, bundle_iui_gnn_feat, bundle_modal_gnn_feat = self.encoder(seq_x)  # [bs, n_token, d]
         else:
-            feat_bundle_view, _ = self.encoder(seq_x)  # [bs, n_token, d]
+            feat_bundle_view, _, _ = self.encoder(seq_x)  # [bs, n_token, d]
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
 
         if self.conf['view_mode'] == 'dual_view':
             # feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
-            if self.conf['use_iui_graph']:
-                feat_retrival_view, item_iui_gnn_feat = self.decoder((idx, x, seq_x, None, None), all=True)
+            if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+                feat_retrival_view, item_iui_gnn_feat, item_modal_gnn_feat = self.decoder((idx, x, seq_x, None, None), all=True)
             else:
-                feat_retrival_view, _ = self.decoder((idx, x, seq_x, None, None), all=True)
+                feat_retrival_view, _, _ = self.decoder((idx, x, seq_x, None, None), all=True)
         else:
             # feat_retrival_view = self.encoder((idx, x, seq_x, None, None), all=True)
-            if self.conf['use_iui_graph']:
-                feat_retrival_view, item_iui_gnn_feat = self.encoder((idx, x, seq_x, None, None), all=True)
+            if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+                feat_retrival_view, item_iui_gnn_feat, item_modal_gnn_feat = self.encoder((idx, x, seq_x, None, None), all=True)
             else:
-                feat_retrival_view, _ = self.encoder((idx, x, seq_x, None, None), all=True)
+                feat_retrival_view, _, _ = self.encoder((idx, x, seq_x, None, None), all=True)
 
         # fusion
-        if self.conf['use_iui_graph']:
-            feat_retrival_view = feat_retrival_view + item_iui_gnn_feat
-            bundle_feature = bundle_feature + bundle_iui_gnn_feat[idx]
+        if self.conf['use_iui_graph'] and self.conf['use_modality_ii_graph']:
+            feat_retrival_view = feat_retrival_view + item_iui_gnn_feat + item_modal_gnn_feat
+            bundle_feature = bundle_feature + bundle_iui_gnn_feat[idx] + bundle_modal_gnn_feat[idx]
         
         # cal score 
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)

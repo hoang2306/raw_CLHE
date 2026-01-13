@@ -125,6 +125,11 @@ def get_cmd():
     parser.add_argument("--type_gnn_implement", default='torch_geometric', choices=['torch_geometric', 'self_implement'], type=str, help="the number of gnn layers for item-item graph")
     # parser.add_argument("--n_gnn_layers", default=3, type=int, help="the number of gnn layers for item-item graph")
 
+    # modality item-item graph
+    parser.add_argument("--use_modality_ii_graph", action='store_true', help="whether to use modality-level item-item graph")
+    parser.add_argument("--knn_k", default=10, type=int, help="the k for knn graph construction")
+    parser.add_argument("--n_layer_modal_ii_graph", default=1, type=int, help="the number of gnn layers for modality-level item-item graph")
+
     args = parser.parse_args()
     return args
 
