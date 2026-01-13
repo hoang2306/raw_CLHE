@@ -136,7 +136,8 @@ class HierachicalEncoder(nn.Module):
                 concat=False,
                 self_loop=False,
                 extra_layer=True,
-                type_gnn='light_gcn'
+                # type_gnn='light_gcn'
+                type_gnn=self.conf['iui_gnn_type']
             )
             self.item_iui_gnn_emb = nn.Parameter(
                 torch.FloatTensor(self.num_item, self.embedding_size)

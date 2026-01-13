@@ -121,6 +121,7 @@ def get_cmd():
     # iui gnn graph 
     parser.add_argument("--use_iui_graph", action='store_true', help="whether to use item-item graph gnn")
     parser.add_argument("--iui_graph_path", default='', type=str, help="the path to the precomputed item-item graph")
+    parser.add_argument("--iui_gnn_type", default='light_gcn', type=str, help="the gnn type for item-item graph")
 
     args = parser.parse_args()
     return args
