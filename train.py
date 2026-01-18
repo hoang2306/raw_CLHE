@@ -93,6 +93,8 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
+    # flag use item pretrained emb
+    parser.add_argument("--use_item_pretrained_embedding", action='store_true', help="whether to use pretrained item embeddings")
     
 
     args = parser.parse_args()
