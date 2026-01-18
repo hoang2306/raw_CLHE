@@ -96,6 +96,8 @@ def get_cmd():
     # flag use item pretrained emb
     parser.add_argument("--use_item_pretrained_embedding", action='store_true', help="whether to use pretrained item embeddings")
     
+    # optimizer
+    parser.add_argument("--optimizer", type=str, default="adam", help="which optimizer to use, adam or adagrad")
 
     args = parser.parse_args()
     return args
@@ -186,14 +188,19 @@ def main():
         log.write(f"{conf}\n")
         print(conf)
 
-    optimizer = optim.Adam(model.parameters(), lr=lr,
-                           weight_decay=conf["l2_reg"])
+    if conf['optimizer'].lower() == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=lr,
+                            weight_decay=conf["l2_reg"])
+    elif conf['optimizer'].lower() == 'adamw':
+        optimizer = optim.AdamW(model.parameters(), lr=lr,
+                            weight_decay=conf["l2_reg"])
+
     batch_cnt = len(dataset.train_loader)
     test_interval_bs = int(batch_cnt * conf["test_interval"])
 
     best_metrics, best_perform = init_best_metrics(conf)
     best_epoch = 0
-    setup_seed(conf["seed"])
+    # setup_seed(conf["seed"])
 
     # set up wandb 
     if conf['wandb_run_name'] != "":
