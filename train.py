@@ -80,6 +80,10 @@ def get_cmd():
 
     # early stopping
     parser.add_argument("--early_stop", default=10, type=int, help="")
+
+    # optimizer
+    parser.add_argument("--optimizer", default="Adam", type=str, help="which optimizer to use")
+
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
     # parser.add_argument("--alpha_bundle_sum", default=0.2, type=float, help="")
