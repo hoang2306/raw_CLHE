@@ -196,8 +196,18 @@ def main():
         log.write(f"{conf}\n")
         print(conf)
 
-    optimizer = optim.Adam(model.parameters(), lr=lr,
-                           weight_decay=conf["l2_reg"])
+    def get_optimizer(optimizer_name, model, lr, weight_decay):
+        if optimizer_name.lower() == "adamw":
+            return optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        if optimizer_name.lower() == "adam":
+            return optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        if optimizer_name.lower() == "sgd":
+            return optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+        if optimizer_name.lower() == "rmsprop":
+            return optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay)
+        raise ValueError("Unimplemented optimizer %s" % (optimizer_name))    
+
+    optimizer = get_optimizer(conf["optimizer"], model, lr, conf["l2_reg"])
     batch_cnt = len(dataset.train_loader)
     test_interval_bs = int(batch_cnt * conf["test_interval"])
 
