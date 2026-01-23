@@ -83,6 +83,7 @@ def get_cmd():
 
     # optimizer
     parser.add_argument("--optimizer", default="Adam", type=str, help="which optimizer to use")
+    parser.add_argument("--optimizer_config", type=json.loads, default="{}")
 
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
@@ -200,18 +201,23 @@ def main():
         log.write(f"{conf}\n")
         print(conf)
 
-    def get_optimizer(optimizer_name, model, lr, weight_decay):
-        if optimizer_name.lower() == "adamw":
-            return optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-        if optimizer_name.lower() == "adam":
-            return optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-        if optimizer_name.lower() == "sgd":
-            return optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
-        if optimizer_name.lower() == "rmsprop":
-            return optim.RMSprop(model.parameters(), lr=lr, weight_decay=weight_decay)
-        raise ValueError("Unimplemented optimizer %s" % (optimizer_name))    
+    def get_optimizer(optimizer_name, model, optimizer_config):
+        optimizer_cls = {
+            "adam": optim.Adam,
+            "adamw": optim.AdamW,
+            "sgd": optim.SGD,
+            "rmsprop": optim.RMSprop,
+        }.get(optimizer_name.lower())
+        
+        if optimizer_cls is None:
+            raise ValueError(f"Unknown optimizer {optimizer_name}")
 
-    optimizer = get_optimizer(conf["optimizer"], model, lr, conf["l2_reg"])
+        return optimizer_cls(model.parameters(), **optimizer_config)
+
+    # add lr and weight decay to optimizer config
+    conf["optimizer_config"]['lr'] = lr
+    conf["optimizer_config"]['weight_decay'] = conf['l2_reg']
+    optimizer = get_optimizer(conf["optimizer"], model, conf["optimizer_config"])
     batch_cnt = len(dataset.train_loader)
     test_interval_bs = int(batch_cnt * conf["test_interval"])
 
