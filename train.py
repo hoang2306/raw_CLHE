@@ -202,6 +202,7 @@ def main():
         print(conf)
 
     def get_optimizer(optimizer_name, model, optimizer_config):
+        print(f'optimizer name: {optimizer_name}')
         optimizer_cls = {
             "adam": optim.Adam,
             "adamw": optim.AdamW,
