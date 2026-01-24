@@ -84,6 +84,9 @@ def get_cmd():
     # optimizer
     parser.add_argument("--optimizer", default="Adam", type=str, help="which optimizer to use")
     parser.add_argument("--optimizer_config", type=json.loads, default="{}")
+    # scheduler learning rate 
+    parser.add_argument("--scheduler", default="", type=str, help="which scheduler to use") 
+    parser.add_argument("--scheduler_config", type=json.loads, default="{}")
 
     parser.add_argument("--view_mode", default='dual_view', type=str, help="")
     parser.add_argument("--loss_mode", default='full_loss', type=str, help="")
@@ -219,6 +222,20 @@ def main():
     conf["optimizer_config"]['lr'] = lr
     conf["optimizer_config"]['weight_decay'] = conf['l2_reg']
     optimizer = get_optimizer(conf["optimizer"], model, conf["optimizer_config"])
+    # scheduler lr
+    if conf["scheduler"].lower() == "steplr":
+        step_size = conf["scheduler_config"].get("step_size", 10)
+        gamma = conf["scheduler_config"].get("gamma", 0.5)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optimizer, step_size=step_size, gamma=gamma
+        )
+    if conf["scheduler"].lower() == "cosine":
+        T_max = conf["scheduler_config"].get("T_max", conf['epochs'])
+        eta_min = conf["scheduler_config"].get("eta_min", 1e-6)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=T_max, eta_min=eta_min
+        )
+
     batch_cnt = len(dataset.train_loader)
     test_interval_bs = int(batch_cnt * conf["test_interval"])
 
@@ -262,6 +279,8 @@ def main():
 
             losses['loss'].backward(retain_graph=False)
             optimizer.step()
+            if conf["scheduler"].lower() in ["steplr", "cosine"]:
+                scheduler.step()
 
             for l in losses:
                 if l not in avg_losses:
