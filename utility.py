@@ -215,7 +215,7 @@ class Datasets():
             content_feature = description_feature = None
 
         cf_feature = torch.load(os.path.join(
-            self.path, self.name, 'item_cf_feature.pt'), map_location=self.device)
+            self.path, self.name, 'content_feature.pt'), map_location=self.device)
         return (content_feature, description_feature, cf_feature)
 
     def get_ui(self):
