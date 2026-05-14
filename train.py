@@ -100,7 +100,6 @@ def get_cmd():
     parser.add_argument("--wandb_run_name", type=str, default="", help="wandb run name")    
     parser.add_argument("--project_name", type=str, required=True, help="wandb project name")
     
-    
 
     args = parser.parse_args()
     return args
@@ -248,30 +247,38 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
-            if (batch_anchor+1) % test_interval_bs == 0:
-                metrics = {}
-                metrics["val"] = test(model, dataset.val_loader, conf)
-                metrics["test"] = test(model, dataset.test_loader, conf)
-                best_metrics, best_perform, best_epoch, is_better = log_metrics(
-                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
-                
-                if conf['wandb_run_name'] != "": # if use wandb
-                    log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
-                
-                if is_better:
-                    # print(best_metrics)
-                    log_csv_test_metric(
-                        best_metrics=best_metrics, 
-                        log_path=conf["log_test_csv_path"],
-                        file_name=f'test_metric_best_epoch_{best_epoch}.csv'
-                    )
-
-                    # exit()
-
-
         time_train_epoch = time.time() - start_train_epoch
 
         print(f'time train epoch {epoch}: {time_train_epoch:.3f}s')
+
+        if (batch_anchor+1) % test_interval_bs == 0:
+            metrics = {}
+                
+            val_infer_start_time = time.time()
+            metrics["val"] = test(model, dataset.val_loader, conf)
+            val_infer_time = time.time() - val_infer_start_time
+            print(f'time infer val test: {val_infer_time:.3f}s')
+                
+            test_infer_start_time = time.time()
+            metrics["test"] = test(model, dataset.test_loader, conf)
+            test_infer_time = time.time() - test_infer_start_time
+            print(f'time infer test: {test_infer_time:.3f}s')
+
+            best_metrics, best_perform, best_epoch, is_better = log_metrics(
+                conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
+                
+            if conf['wandb_run_name'] != "": # if use wandb
+                log_wandb(metrics=metrics, best_metrics=best_metrics, run_wandb=run_wandb, step=epoch)
+                
+            if is_better:
+                # print(best_metrics)
+                log_csv_test_metric(
+                    best_metrics=best_metrics, 
+                    log_path=conf["log_test_csv_path"],
+                    file_name=f'test_metric_best_epoch_{best_epoch}.csv'
+                )
+
+                # exit()
 
         total_loss_history.append(
             np.mean(avg_losses['loss'])
