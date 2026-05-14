@@ -146,10 +146,15 @@ def main():
     except:
         raise ValueError("Unimplemented model %s" % (conf["model"]))
 
-    def count_parameters(model):
+    def count_trainable_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    def count_total_parameters(model):
+        return sum(p.numel() for p in model.parameters())
+    
     # count number of parameters 
-    print(f"number of trainable parameters: {count_parameters(model)}")
+    print(f"number of trainable parameters: {count_trainable_parameters(model)}")
+    print(f"number of total parameters: {count_total_parameters(model)}")
 
     with open(log_path, "a") as log:
         log.write(f"{conf}\n")
@@ -193,16 +198,23 @@ def main():
                                      "%s: %.5f" % (l, losses[l].detach()) for l in losses
                                  ]))
 
-            if (batch_anchor+1) % test_interval_bs == 0:
-                metrics = {}
-                metrics["val"] = test(model, dataset.val_loader, conf)
-                metrics["test"] = test(model, dataset.test_loader, conf)
-                best_metrics, best_perform, best_epoch, is_better = log_metrics(
-                    conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
-
         time_train_epoch = time.time() - start_train_epoch
-
         print(f'time train epoch {epoch}: {time_train_epoch:.3f}s')
+
+        if (batch_anchor+1) % test_interval_bs == 0:
+            metrics = {}
+            val_start_time = time.time()
+            metrics["val"] = test(model, dataset.val_loader, conf)
+            inference_time_val = time.time() - val_start_time
+
+            test_start_time = time.time()
+            metrics["test"] = test(model, dataset.test_loader, conf)
+            inference_time_test = time.time() - test_start_time
+
+            print(f'time inference val epoch {epoch}: {inference_time_val:.3f}s')
+            print(f'time inference test epoch {epoch}: {inference_time_test:.3f}s')
+            best_metrics, best_perform, best_epoch, is_better = log_metrics(
+                conf, model, metrics, run, log_path, checkpoint_model_path, checkpoint_conf_path, epoch, batch_anchor, best_metrics, best_perform, best_epoch, save_path)
 
         for l in avg_losses:
             run.add_scalar(l, np.mean(avg_losses[l]), epoch)
