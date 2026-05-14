@@ -422,8 +422,8 @@ class CLHE(nn.Module):
         if self.bundle_cl_alpha > 0:
             feat_bundle_view2 = self.encoder(seq_modify)  # [bs, n_token, d]
             bundle_feature2 = self.bundle_encode(feat_bundle_view2, mask=mask)
-            bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-            bundle_feature2 = bundle_feature2 + self.bundle_sum_alpha*bundle_sum_emb
+            # bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+            # bundle_feature2 = bundle_feature2 + self.bundle_sum_alpha*bundle_sum_emb
             bundle_loss = self.bundle_cl_alpha * cl_loss_function(
                 bundle_feature.view(-1, self.embedding_size), bundle_feature2.view(-1, self.embedding_size), self.bundle_cl_temp)
         # bundle-level contrastive learning <<<
