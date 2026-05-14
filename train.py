@@ -181,10 +181,17 @@ def main():
     except:
         raise ValueError("Unimplemented model %s" % (conf["model"]))
 
-    def count_parameters(model):
+    def count_trainable_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
-    # count number of parameters 
-    print(f"number of trainable parameters: {count_parameters(model)}")
+    
+    def count_total_parameters(model):
+        return sum(p.numel() for p in model.parameters())
+
+    # count trainable number of parameters
+    print(f"number of trainable parameters: {count_trainable_parameters(model)}")
+
+    # count total number of parameters
+    print(f"total number of parameters: {count_total_parameters(model)}")
 
     with open(log_path, "a") as log:
         log.write(f"{conf}\n")

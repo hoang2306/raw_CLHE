@@ -274,14 +274,14 @@ class CLHE(nn.Module):
             self.noise_weight = conf['noise_weight']
 
         # load bundle summary emb:
-        self.bundle_sum_emb = torch.load(
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
-        ).to(device)
-        print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
-        self.bundle_image_emb = torch.load(
-            # os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image.pt') # stack image then encode by BLIP
-            os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image_sum_emb.pt') # VLP then encode by sen-trans
-        ).to(device)
+        # self.bundle_sum_emb = torch.load(
+        #     os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_sum_emb.pt')
+        # ).to(device)
+        # print(f'bundle emb shape: {self.bundle_sum_emb.shape}')
+        # self.bundle_image_emb = torch.load(
+        #     # os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image.pt') # stack image then encode by BLIP
+        #     os.path.join('datasets', conf['dataset'], f'{conf["dataset"]}_bundle_image_sum_emb.pt') # VLP then encode by sen-trans
+        # ).to(device)
 
         if conf['type_adapter'] == 'linear':
             self.bundle_adapter = nn.Linear(
@@ -374,9 +374,9 @@ class CLHE(nn.Module):
             feat_retrival_view = self.encoder(batch, all=True) # [n_items, d]
         # self.feat_retrival_view = feat_retrival_view # to save model
 
-        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
+        # bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        # bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
+        # bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
 
         # compute loss >>>
         logits = bundle_feature @ feat_retrival_view.transpose(0, 1)
@@ -385,7 +385,7 @@ class CLHE(nn.Module):
         bpr_loss = self.bpr_loss(bundle_feature, feat_retrival_view, positive_indices, negative_indices)
 
         # loss = loss + 0.1 * bpr_loss
-        loss = loss + self.alpha_bpr_loss * bpr_loss
+        # loss = loss + self.alpha_bpr_loss * bpr_loss
 
         # # item-level contrastive learning >>>
         items_in_batch = torch.argwhere(full.sum(dim=0)).squeeze()
@@ -442,10 +442,10 @@ class CLHE(nn.Module):
         feat_bundle_view = self.encoder(seq_x)
 
         bundle_feature = self.bundle_encode(feat_bundle_view, mask=mask)
-        bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
-        bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
+        # bundle_sum_emb = self.bundle_adapter(self.bundle_sum_emb[idx])  # [n_bundles, d]
+        # bundle_image_emb = self.bundle_image_adapter(self.bundle_image_emb[idx])
         # bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb
-        bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
+        # bundle_feature = bundle_feature + self.bundle_sum_alpha*bundle_sum_emb + self.bundle_image_alpha*bundle_image_emb
 
         if self.conf['view_mode'] == 'dual_view':
             feat_retrival_view = self.decoder((idx, x, seq_x, None, None), all=True)
