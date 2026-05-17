@@ -8,6 +8,128 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
 
+# class BundleTrainDataset(Dataset):
+#     def __init__(self, conf, b_i_pairs, b_i_graph, features, num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, neg_sample=1):
+#         self.conf = conf
+#         self.b_i_pairs = b_i_pairs
+#         self.b_i_graph = b_i_graph
+#         self.bundles_map = np.argwhere(self.b_i_graph.sum(axis=1) > 0)[
+#             :, 0].reshape(-1)
+#         self.num_bundles = num_bundles
+#         self.num_items = self.b_i_graph.shape[1]
+#         self.neg_sample = neg_sample
+#         self.features = features
+
+#         self.b_i_for_neg_sample = b_i_for_neg_sample
+#         self.b_b_for_neg_sample = b_b_for_neg_sample
+
+#         self.len_max = int(self.b_i_graph.sum(axis=1).max())
+#         if self.conf["bundle_ratio"] > 1:
+#             self.num_add = round(
+#                 self.len_max * (self.conf["bundle_ratio"] - 1))
+#             self.num_add = self.num_add if self.num_add > 0 else 1
+#             self.len_max = self.len_max + self.num_add
+
+#         if self.len_max > self.conf["num_token"]:
+#             self.len_max = self.conf["num_token"]
+#         print(f"Train: {self.len_max}")
+
+#         self.bundle_augment = conf["bundle_augment"]
+
+#     def __getitem__(self, index):
+
+#         full = torch.from_numpy(
+#             self.b_i_graph[self.bundles_map[index]].toarray()).squeeze()
+
+#         # multi-hot
+#         modify = torch.zeros_like(full)
+#         indices = torch.argwhere(full)[:, 0]
+
+#         # shuffle >>>
+#         num_items = indices.shape[0]
+#         random_idx = torch.randperm(num_items)
+#         indices = indices[random_idx]
+#         # shuffle <<<
+
+#         seq_full = F.pad(
+#             indices, (0, self.len_max-len(indices)), value=self.num_items)
+
+#         if self.conf["bundle_ratio"] > 0 and self.conf["bundle_ratio"] < 1:  # remove items
+#             if self.bundle_augment == "ID":
+#                 line = round(len(indices)*self.conf["bundle_ratio"]+0.5)
+#                 line = line if line < len(indices) else len(
+#                     indices)-1  # ensure at less one item is masked
+#                 p_indices = indices[:line]
+#                 modify[p_indices] = 1
+
+#                 # sequence set:
+#                 seq_modify = F.pad(
+#                     p_indices, (0, self.len_max-len(p_indices)), value=self.num_items)
+#             elif self.bundle_augment == "IR":
+#                 line = round(len(indices)*self.conf["bundle_ratio"]+0.5)
+#                 line = line if line < len(indices) else len(
+#                     indices)-1  # ensure at less one item is masked
+#                 p_indices = indices[:line]
+#                 replace_indices = random.sample(
+#                     range(num_items), len(indices) - line)
+#                 replace_indices = torch.LongTensor(
+#                     replace_indices).to(p_indices.device)
+#                 p_indices = torch.cat([p_indices, replace_indices])
+
+#                 modify[p_indices] = 1
+#                 seq_modify = F.pad(
+#                     p_indices, (0, self.len_max-len(p_indices)), value=self.num_items)
+
+#         elif self.conf["bundle_ratio"] == 1:
+#             modify = full
+#             seq_modify = seq_full
+#         elif self.conf["bundle_ratio"] > 1:  # add items
+#             m_indices = indices.tolist()
+#             # randomly add items
+#             while True:
+#                 i = np.random.randint(self.num_items)
+#                 if not i in m_indices:
+#                     m_indices.append(i)
+#                     if len(m_indices) == self.num_add+len(indices):
+#                         break
+
+#             m_indices = torch.LongTensor(m_indices)
+#             modify[m_indices] = 1
+#             seq_modify = F.pad(
+#                 m_indices, (0, self.len_max-len(m_indices)), value=self.num_items)
+            
+#         # self.bundle_map[index]: bundle id 
+#         # full: multi-hot vector of bundle 
+
+#         # get size of bundles
+#         bundle_size = int(full.sum().item())
+#         # print(f'bundle size: {bundle_size}')
+#         # sample negative items for training
+#         positive_indices = torch.argwhere(full)[:, 0].tolist()
+#         # print(f'positive indices: {positive_indices}')
+#         # exit()
+#         # convert to set for faster operation
+#         positive_set = set(positive_indices)
+#         negative_indices = random.sample(
+#             [i for i in range(self.num_items) if i not in positive_set],
+#             bundle_size
+#         )
+#         # convert to tensor to pad 
+#         negative_indices = torch.LongTensor(negative_indices)
+#         positive_indices = torch.LongTensor(positive_indices)
+#         # pad positive and negative indices to fixed length
+#         positive_indices = F.pad(positive_indices, (0, self.len_max-len(positive_indices)), value=self.num_items)
+#         negative_indices = F.pad(negative_indices, (0, self.len_max-len(negative_indices)), value=self.num_items)
+
+#         # return self.bundles_map[index], full, seq_full, modify, seq_modify # return old code 
+#         # return with BPR setting 
+#         return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size
+
+
+#     def __len__(self):
+#         return len(self.bundles_map)
+
+
 class BundleTrainDataset(Dataset):
     def __init__(self, conf, b_i_pairs, b_i_graph, features, num_bundles, b_i_for_neg_sample, b_b_for_neg_sample, neg_sample=1):
         self.conf = conf
@@ -97,38 +219,11 @@ class BundleTrainDataset(Dataset):
             modify[m_indices] = 1
             seq_modify = F.pad(
                 m_indices, (0, self.len_max-len(m_indices)), value=self.num_items)
-            
-        # self.bundle_map[index]: bundle id 
-        # full: multi-hot vector of bundle 
 
-        # get size of bundles
-        bundle_size = int(full.sum().item())
-        # print(f'bundle size: {bundle_size}')
-        # sample negative items for training
-        positive_indices = torch.argwhere(full)[:, 0].tolist()
-        # print(f'positive indices: {positive_indices}')
-        # exit()
-        # convert to set for faster operation
-        positive_set = set(positive_indices)
-        negative_indices = random.sample(
-            [i for i in range(self.num_items) if i not in positive_set],
-            bundle_size
-        )
-        # convert to tensor to pad 
-        negative_indices = torch.LongTensor(negative_indices)
-        positive_indices = torch.LongTensor(positive_indices)
-        # pad positive and negative indices to fixed length
-        positive_indices = F.pad(positive_indices, (0, self.len_max-len(positive_indices)), value=self.num_items)
-        negative_indices = F.pad(negative_indices, (0, self.len_max-len(negative_indices)), value=self.num_items)
-
-        # return self.bundles_map[index], full, seq_full, modify, seq_modify # return old code 
-        # return with BPR setting 
-        return self.bundles_map[index], full, seq_full, modify, seq_modify, positive_indices, negative_indices, bundle_size
-
+        return self.bundles_map[index], full, seq_full, modify, seq_modify
 
     def __len__(self):
         return len(self.bundles_map)
-
 
 class BundleTestDataset(Dataset):
     def __init__(self, conf, b_i_pairs_i, b_i_graph_i, b_i_pairs_gt, b_i_graph_gt, num_bundles, num_items):
