@@ -90,6 +90,7 @@ class HierachicalEncoder(nn.Module):
         # BI <<<
 
         # UI >>>
+        print(f'cf feature shape: {self.cf_feature.shape}')
         self.cf_transformation = nn.Linear(
             self.cf_feature.shape[1], self.embedding_size)
         init(self.cf_transformation)
