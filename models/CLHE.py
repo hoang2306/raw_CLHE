@@ -91,7 +91,7 @@ class HierachicalEncoder(nn.Module):
 
         # UI >>>
         self.cf_transformation = nn.Linear(
-            self.embedding_size, self.embedding_size)
+            self.cf_feature.shape[1], self.embedding_size)
         init(self.cf_transformation)
         items_in_cf = self.ui_graph.sum(axis=0, dtype=bool)
         self.warm_indices_cf = torch.LongTensor(
